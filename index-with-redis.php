@@ -1,11 +1,11 @@
 <?php
 
 /*
-	This code is based on `index-with-redis.php`
-	by Jim Westergren & Jeedo Aquino.
-	
-	URL:	http://www.jimwestergren.com/wordpress-with-redis-as-a-frontend-cache/
-	Gist: 	https://gist.github.com/JimWestergren/3053250
+    This code is based on `index-with-redis.php`
+    by Jim Westergren & Jeedo Aquino.
+
+    URL:	http://www.jimwestergren.com/wordpress-with-redis-as-a-frontend-cache/
+    Gist: 	https://gist.github.com/JimWestergren/3053250
 */
 
 /*----------------------------------------------------------------------*
@@ -22,7 +22,6 @@
  */
 $cache_comment = true;
 
-
 /*----------------------------------------------------------------------*
  * Caching
  *----------------------------------------------------------------------*/
@@ -35,9 +34,9 @@ $start = microtime();
 
 /** 
  * Tell WordPress whether or not to load the theme you’re using, which allows you to use all 
- * WordPress’s functionality for something that doesn’t look like WordPress at all!
+ * WordPress’s functionality for something that doesn’t look like WordPress at all.
  *
- * Notes on this constant: http://betterwp.net/282-wordpress-constants/
+ * Reference: http://betterwp.net/282-wordpress-constants/
  */
 define( 'WP_USE_THEMES', true );
 
@@ -45,114 +44,146 @@ define( 'WP_USE_THEMES', true );
  * Initialize Predis
  *--------------------------------------------*/
  
-include( "./predis.php" );
+include( './predis.php' );
 $redis = new Predis\Client(
-	array(
-    	'host'   => $_SERVER['CACHE2_HOST'],
-    	'port'   => $_SERVER['CACHE2_PORT'],
+    array(
+        'host'   => $_SERVER['CACHE2_HOST'],
+        'port'   => $_SERVER['CACHE2_PORT'],
     )
 );
 
 /*--------------------------------------------*
- * Server Configuration Variables
+ * Server Variables
  *--------------------------------------------*/
 
 $domain = $_SERVER['HTTP_HOST'];
-$url = "http://" . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
+$url = 'http://' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
 $url = str_replace( '?r=y', '', $url );
 $url = str_replace( '?c=y', '', $url );
 $dkey = md5( $domain );
 $ukey = md5( $url );
 
-// Check that the page isn't a comment submission
-( ( isset( $_SERVER['HTTP_CACHE_CONTROL'] ) && ( $_SERVER['HTTP_CACHE_CONTROL'] == 'max-age=0' ) ) ? $submit = 1 : $submit = 0 );
+// Check that the page isn't a comment submission.
+( ( isset( $_SERVER['HTTP_CACHE_CONTROL'] ) && ( 'max-age=0' == $_SERVER['HTTP_CACHE_CONTROL'] ) ) ? $submit = 1 : $submit = 0 );
 
-// Check if we're logged into WordPress or not
+// Check if user is logged into WordPress or not.
 $cookie = var_export( $_COOKIE, true );
-$loggedin = preg_match( "/wordpress_logged_in/", $cookie );
+$loggedin = preg_match( '/wordpress_logged_in/', $cookie );
 
-/*--------------------------------------------------------------------------------------------------------------------*
- * Caching
+/*--------------------------------------------*
+ * Caching Scenarios
+ *--------------------------------------------*/
+
+/**
+ * Caching settings and vales are based on PHP and Redis best practices.
  *
- * Note that this section uses tips from http://phpmaster.com/an-introduction-to-redis-in-php-using-predis/
- * for setting an expiration on the cache values.
- *--------------------------------------------------------------------------------------------------------------------*/
+ * Reference: http://phpmaster.com/an-introduction-to-redis-in-php-using-predis/
+ */
 
-// If this page is cache and we're not logged in and we're not submitting a comment and we're not reading an RSS and we're not on the homepage
-if ( $redis->hexists( $dkey, $ukey ) && ! $loggedin && ! $submit && ! strpos( $url, '/feed/' ) && $_SERVER["REQUEST_URI"] != '/' ) {
+/**
+ * Scenario: Display already cached page
+ *
+ * Criteria:
+ *     - Page is already cached
+ *     - User is not logged in
+ *     - Not submitting a comment
+ *     - Not RSS
+ *     - Not on the home / index page
+ */
+if ( $redis->hexists( $dkey, $ukey ) && ! $loggedin && ! $submit && ! strpos( $url, '/feed/' ) && '/' != $_SERVER["REQUEST_URI"] ) {
 
-	// Pull the page from the cache
+    // Pull the page from the cache.
     echo $redis->hget( $dkey, $ukey );
     $cached = 1;
     $msg = 'this is a cache';
 
-// Otherwise, if a comment was submitted or a 'clear page cache' request was sent...
-} else if ( $submit || substr( $_SERVER['REQUEST_URI'], -4 ) == '?r=y' ) {
+/**
+ * Scenario: Comment submitted or "clear page cache" request
+ *
+ * Criteria:
+ *     - Comment submitted
+ *     - Clear the page cache query string flag (currently doable by anyone, not just logged in users)
+ */
+} else if ( $submit || '?r=y' == substr( $_SERVER['REQUEST_URI'], -4 ) ) {
 
-	// Delete the page from the cache
+    // Delete the page from the cache.
     require( './wp-blog-header.php' );
     $redis->hdel( $dkey, $ukey );
     $msg = 'cache of page deleted';
 
+    // TODO: This is where we need to clear the index as well.
 
-// If we're logged in and we pass the '?c=y' parameter...
-} else if ( $loggedin && substr( $_SERVER['REQUEST_URI'], -4 ) == '?c=y' ) {
+/**
+ * Scenario: Clear cache for entire site
+ *
+ * Criteria:
+ *     - User is logged in
+ *     - Clear the entire site cache query string flag (?c=y)
+ */
+} else if ( $loggedin && '?c=y' == substr( $_SERVER['REQUEST_URI'], -4 ) ) {
 
-	// Then delete the entire cache
     require( 'wp-blog-header.php' );
+
+    // Check if there is anything cached.
     if ( $redis->exists( $dkey ) ) {
-    
+
+        // Delete the entire cache.
         $redis->del( $dkey );
         $msg = 'domain cache flushed';
         
     } else {
+
+        // No cache to delete.
         $msg = 'no cache to flush';
+
     } // end if/else
 
-// If we're logged in...
+/**
+ * Scenario: Logged in user
+ *
+ * Criteria:
+ *     - User is logged in
+ */
 } else if ( $loggedin ) {
 
-	// ...don't cache anything
+    // Don't cache anything. Logged in users always see the site as is.
     require( 'wp-blog-header.php' );
-    $msg = 'not cached';
+    $msg = 'not cached, user is logged in';
 
-// If we're submitting a comment or the page cache request was sent...
-} else if ( $submit || substr( $_SERVER['REQUEST_URI'], -4 ) == '?r=y' ) {
-
-	// Delete the cache of the page
-    require( 'wp-blog-header.php' );
-    $redis->hdel( $dkey, $ukey );
-    $msg = 'cache of page deleted';
-    
-    // TODO: this is where we need to clear the index as well
-
-// Otherwise, we cache the entire page
+/**
+ * Scenario: Display page
+ *
+ * Criteria:
+ *     - None
+ */
 } else {
 
-    // Turn on the output buffering
+    // Turn on the output buffer.
     ob_start();
+
     require( 'wp-blog-header.php' );
 
-    // Read the contents of the output buffer into $html
+    // Read the contents of the output buffer.
     $html = ob_get_contents();
 
-    // Clean the output buffer
+    // Clean the output buffer.
     ob_end_clean();
-    
-    // Echo the $html
+
+    // Display page source.
     echo $html;
-    
-    // Store the contents of the page into the cache (if we're not a search result or a 404)
-    if ( ! is_404() && ! is_search() ) { 
-    
-	    $redis->hset( $dkey, $ukey, $html );
-	    
-	    // Now set the value to expire in one week. We'll try this first.
-	    $redis->expireat( "expire in 1 week", strtotime( "+1 week" ) );
-	    $msg = 'cache is set';
-	    
+
+    // Only add the page to the cache if it is not a search results page or a 404 page.
+    if ( ! is_404() && ! is_search() ) {
+
+        // Store the contents of the page in the cache.
+        $redis->hset( $dkey, $ukey, $html );
+
+        // Set cached page to expire in one week.
+        $redis->expireat( 'expire in 1 week', strtotime( '+1 week' ) );
+        $msg = 'cache is set';
+
     } // end if
-    
+
 } // end if/else
 
 /*--------------------------------------------*
@@ -162,15 +193,15 @@ $end = microtime();
 
 // Check if we need to add a cache comment.
 if ( $cache_comment ) {
-	
-	// Print out the page execution time
-	$html = '<!-- WP Redis Cache [ ';
-		$html .= $msg . ': ';
-		$html .= t_exec( $start, $end );
-	$html .= ' ] -->';
-	
+
+    // Add comment to source with message and execution time.
+    $html = '<!-- WP Redis Cache [ ';
+        $html .= $msg . ': ';
+        $html .= t_exec( $start, $end );
+    $html .= ' ] -->';
+
     echo $html;
-    
+
 } // end if
 
 /*----------------------------------------------------------------------*
@@ -180,9 +211,9 @@ if ( $cache_comment ) {
 /**
  * Calculate the amount of time it took to load the page.
  *
- * @param	float	$start	When the page began to load.
- * @param	float	$end	When the page stopped loading.
- * @return	float			How long it took to load the page.
+ * @param   float   $start  When the page began to load.
+ * @param   float   $end    When the page stopped loading.
+ * @return  float           How long it took to load the page.
  */
 function t_exec( $start, $end ) {
 
@@ -192,14 +223,14 @@ function t_exec( $start, $end ) {
 } // end t_exec
 
 /**
- * Returns the Unix timestamp in microseconds based on the incoming value
+ * Returns the Unix timestamp in microseconds based on the incoming value.
  *
- * @param	float	$t		The incoming value of the microseconds.
- * @return	float			The rounded version of the microseconds.
+ * @param   float   $t      The incoming value of the microseconds.
+ * @return  float           The rounded version of the microseconds.
  */
 function getmicrotime( $t ) {
 
-    list( $usec, $sec ) = explode( " ", $t );
+    list( $usec, $sec ) = explode( ' ', $t );
     return ( (float)$usec + (float)$sec );
     
 } // end getmicrotime
