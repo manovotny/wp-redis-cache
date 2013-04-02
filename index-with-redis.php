@@ -9,15 +9,24 @@
 */
 
 /*----------------------------------------------------------------------*
- * Configuration and Caching
+ * Configuration
  *----------------------------------------------------------------------*/
 
-/*--------------------------------------------*
- * Display Variables
- *--------------------------------------------*/
+/**
+ * Controls if an HTML comment is added to the page source with the caching
+ * details.
+ *
+ * Set to `true` to add the comment.
+ *
+ * Set to `false` to not add the comment.
+ */
+$cache_comment = true;
 
-$debug = 1;						// set to 1 if you wish to see execution time and cache actions
 
+/*----------------------------------------------------------------------*
+ * Caching
+ *----------------------------------------------------------------------*/
+ 
 /*--------------------------------------------*
  * Start Timing Page Execution
  *--------------------------------------------*/
@@ -151,11 +160,11 @@ if ( $redis->hexists( $dkey, $ukey ) && ! $loggedin && ! $submit && ! strpos( $u
  *--------------------------------------------*/
 $end = microtime(); 
 
-// If debug is enabled...
-if ( $debug ) {
+// Check if we need to add a cache comment.
+if ( $cache_comment ) {
 	
 	// Print out the page execution time
-	$html = '<!-- WP Daily Cache [ ';
+	$html = '<!-- WP Redis Cache [ ';
 		$html .= $msg . ': ';
 		$html .= t_exec( $start, $end );
 	$html .= ' ] -->';
