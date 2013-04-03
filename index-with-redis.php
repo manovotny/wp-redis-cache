@@ -22,6 +22,10 @@
  */
 $cache_comment = true;
 
+if( ! defined( 'SITE_NAME' ) ) {
+	define( 'SITE_NAME', 'WP Daily' );
+} // end if
+
 /*----------------------------------------------------------------------*
  * Caching
  *----------------------------------------------------------------------*/
@@ -95,7 +99,7 @@ if ( $redis->hexists( $dkey, $ukey ) && ! $loggedin && ! $submit && ! strpos( $u
     // Pull the page from the cache.
     echo $redis->hget( $dkey, $ukey );
     $cached = 1;
-    $msg = 'this is a cache';
+    wpd_display_log( 'this is a cache' );
 
 /**
  * Scenario: Comment submitted or "clear page cache" request
@@ -109,7 +113,7 @@ if ( $redis->hexists( $dkey, $ukey ) && ! $loggedin && ! $submit && ! strpos( $u
     // Delete the page from the cache.
     require( './wp-blog-header.php' );
     $redis->hdel( $dkey, $ukey );
-    $msg = 'cache of page deleted';
+    wpd_display_log( 'cache of page deleted' );
 
     // TODO: This is where we need to clear the index as well.
 
@@ -129,12 +133,12 @@ if ( $redis->hexists( $dkey, $ukey ) && ! $loggedin && ! $submit && ! strpos( $u
 
         // Delete the entire cache.
         $redis->del( $dkey );
-        $msg = 'domain cache flushed';
+        wpd_display_log( 'domain cache flushed' );
         
     } else {
 
         // No cache to delete.
-        $msg = 'no cache to flush';
+        wpd_display_log( 'no cache to flush' );
 
     } // end if/else
 
@@ -148,7 +152,7 @@ if ( $redis->hexists( $dkey, $ukey ) && ! $loggedin && ! $submit && ! strpos( $u
 
     // Don't cache anything. Logged in users always see the site as is.
     require( 'wp-blog-header.php' );
-    $msg = 'not cached, user is logged in';
+    wpd_display_log( 'not cached, user is logged in' );
 
 /**
  * Scenario: Display page
@@ -180,7 +184,7 @@ if ( $redis->hexists( $dkey, $ukey ) && ! $loggedin && ! $submit && ! strpos( $u
 
         // Set cached page to expire in one week.
         $redis->expireat( 'expire in 1 week', strtotime( '+1 week' ) );
-        $msg = 'cache is set';
+        wpd_display_log( 'cache is set' );
 
     } // end if
 
@@ -200,7 +204,7 @@ if ( $cache_comment ) {
         $html .= t_exec( $start, $end );
     $html .= ' ] -->';
 
-    echo $html;
+    wpd_display_log( $html );
 
 } // end if
 
@@ -234,3 +238,12 @@ function getmicrotime( $t ) {
     return ( (float)$usec + (float)$sec );
     
 } // end getmicrotime
+
+/**
+ * Displays a log message at the bottom of the page.
+ *
+ * @param	string	$msg	The message to display
+ */
+function wpd_display_log( $msg ) {
+	echo '<!-- ' . SITE_NAME . ' Cache: [ ' . $msg . ' ] -->';
+} // end wpd_display_log
