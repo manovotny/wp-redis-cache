@@ -123,7 +123,7 @@ if ( $redis->hexists( $dkey, $ukey ) && ! $loggedin && ! $submit && ! strpos( $u
  *     - User is logged in
  *     - Clear the entire site cache query string flag (?c=y)
  */
-} else if ( $loggedin && '?c=y' == substr( $_SERVER['REQUEST_URI'], -4 ) ) {
+} else if ( $loggedin && ( isset( $_GET['c'] ) && 'y' == $_GET['c'] ) ) {
 
     require( 'wp-blog-header.php' );
 
