@@ -48,7 +48,7 @@ define( 'WP_USE_THEMES', true );
  * Initialize Predis
  *--------------------------------------------*/
  
-include( './predis.php' );
+include( './lib/predis.php' );
 $redis = new Predis\Client(
     array(
         'host'   => $_SERVER['CACHE2_HOST'],
