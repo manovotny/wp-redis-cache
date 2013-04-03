@@ -113,9 +113,8 @@ if ( $redis->hexists( $dkey, $ukey ) && ! $loggedin && ! $submit && ! strpos( $u
     // Delete the page from the cache.
     require( './wp-blog-header.php' );
     $redis->hdel( $dkey, $ukey );
+    
     wpd_display_log( 'cache of page deleted' );
-
-    // TODO: This is where we need to clear the index as well.
 
 /**
  * Scenario: Clear cache for entire site
@@ -198,13 +197,7 @@ $end = microtime();
 // Check if we need to add a cache comment.
 if ( $cache_comment ) {
 
-    // Add comment to source with message and execution time.
-    $html = '<!-- WP Redis Cache [ ';
-        $html .= $msg . ': ';
-        $html .= t_exec( $start, $end );
-    $html .= ' ] -->';
-
-    wpd_display_log( $html );
+    wpd_display_log( t_exec( $start, $end ) );
 
 } // end if
 
