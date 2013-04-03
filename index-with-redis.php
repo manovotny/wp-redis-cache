@@ -68,7 +68,7 @@ $dkey = md5( $domain );
 $ukey = md5( $url );
 
 // Check that the page isn't a comment submission.
-( ( isset( $_SERVER['HTTP_CACHE_CONTROL'] ) && ( 'max-age=0' == $_SERVER['HTTP_CACHE_CONTROL'] ) ) ? $submit = 1 : $submit = 0 );
+$submit = isset( $_POST['comment_post_ID'] ) ? 1 : 0;
 
 // Check if user is logged into WordPress or not.
 $cookie = var_export( $_COOKIE, true );
