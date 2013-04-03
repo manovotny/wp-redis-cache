@@ -108,7 +108,7 @@ if ( $redis->hexists( $dkey, $ukey ) && ! $loggedin && ! $submit && ! strpos( $u
  *     - Comment submitted
  *     - Clear the page cache query string flag (currently doable by anyone, not just logged in users)
  */
-} else if ( $submit || '?r=y' == substr( $_SERVER['REQUEST_URI'], -4 ) ) {
+} else if ( $submit || ( isset( $_GET['r'] ) && 'y' == $_GET['r'] ) ) {
 
     // Delete the page from the cache.
     require( './wp-blog-header.php' );
