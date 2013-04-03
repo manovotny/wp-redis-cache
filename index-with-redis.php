@@ -12,7 +12,7 @@
  * Configuration
  *----------------------------------------------------------------------*/
 
-/**
+/*
  * Controls if an HTML comment is added to the page source with the caching
  * details.
  *
@@ -36,7 +36,7 @@ if( ! defined( 'SITE_NAME' ) ) {
  
 $start = microtime(); 
 
-/** 
+/*
  * Tell WordPress whether or not to load the theme you’re using, which allows you to use all 
  * WordPress’s functionality for something that doesn’t look like WordPress at all.
  *
@@ -78,13 +78,13 @@ $loggedin = preg_match( '/wordpress_logged_in/', $cookie );
  * Caching Scenarios
  *--------------------------------------------*/
 
-/**
+/*
  * Caching settings and vales are based on PHP and Redis best practices.
  *
  * Reference: http://phpmaster.com/an-introduction-to-redis-in-php-using-predis/
  */
 
-/**
+/*
  * Scenario: Display already cached page
  *
  * Criteria:
@@ -101,7 +101,7 @@ if ( $redis->hexists( $dkey, $ukey ) && ! $loggedin && ! $submit && ! strpos( $u
     $cached = 1;
     wpd_display_log( 'this is a cache' );
 
-/**
+/*
  * Scenario: Comment submitted or "clear page cache" request
  *
  * Criteria:
@@ -116,7 +116,7 @@ if ( $redis->hexists( $dkey, $ukey ) && ! $loggedin && ! $submit && ! strpos( $u
     
     wpd_display_log( 'cache of page deleted' );
 
-/**
+/*
  * Scenario: Clear cache for entire site
  *
  * Criteria:
@@ -141,7 +141,7 @@ if ( $redis->hexists( $dkey, $ukey ) && ! $loggedin && ! $submit && ! strpos( $u
 
     } // end if/else
 
-/**
+/*
  * Scenario: Logged in user
  *
  * Criteria:
@@ -153,7 +153,7 @@ if ( $redis->hexists( $dkey, $ukey ) && ! $loggedin && ! $submit && ! strpos( $u
     require( 'wp-blog-header.php' );
     wpd_display_log( 'not cached, user is logged in' );
 
-/**
+/*
  * Scenario: Display page
  *
  * Criteria:
