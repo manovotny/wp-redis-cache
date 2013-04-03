@@ -3073,4 +3073,3 @@ class Config extends \Predis\MultiBulkCommand {
     public function canBeHashed()  { return false; }
     public function getCommandId() { return 'CONFIG'; }
 }
-?>
