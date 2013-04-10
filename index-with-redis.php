@@ -22,9 +22,20 @@
  */
 $cache_comment = true;
 
+/*
+ * Sets the site name.
+ *
+ * This is used in the cache comment output.
+ */
 if( ! defined( 'SITE_NAME' ) ) {
-	define( 'SITE_NAME', 'WP Daily' );
+    define( 'SITE_NAME', 'WP Daily' );
 } // end if
+
+/*
+ * Sets Redis connection.
+ */
+$redis_host = $_SERVER['CACHE2_HOST'];
+$redis_port = $_SERVER['CACHE2_PORT'];
 
 /*----------------------------------------------------------------------*
  * Caching
@@ -47,12 +58,12 @@ define( 'WP_USE_THEMES', true );
 /*--------------------------------------------*
  * Initialize Predis
  *--------------------------------------------*/
- 
+
 include( './predis.php' );
 $redis = new Predis\Client(
     array(
-        'host'   => $_SERVER['CACHE2_HOST'],
-        'port'   => $_SERVER['CACHE2_PORT']
+        'host'   => $redis_host,
+        'port'   => $redis_port
     )
 );
 
