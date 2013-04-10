@@ -52,7 +52,7 @@ include( './predis.php' );
 $redis = new Predis\Client(
     array(
         'host'   => $_SERVER['CACHE2_HOST'],
-        'port'   => $_SERVER['CACHE2_PORT'],
+        'port'   => $_SERVER['CACHE2_PORT']
     )
 );
 
