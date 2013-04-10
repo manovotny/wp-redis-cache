@@ -38,22 +38,35 @@ $redis_host = $_SERVER['CACHE2_HOST'];
 $redis_port = $_SERVER['CACHE2_PORT'];
 
 /*----------------------------------------------------------------------*
- * Caching
+ * WordPress
  *----------------------------------------------------------------------*/
- 
-/*--------------------------------------------*
- * Start Timing Page Execution
- *--------------------------------------------*/
- 
-$start = microtime(); 
 
 /*
- * Tell WordPress whether or not to load the theme you’re using, which allows you to use all 
+ * Tell WordPress whether or not to load the theme you’re using, which allows you to use all
  * WordPress’s functionality for something that doesn’t look like WordPress at all.
  *
  * Reference: http://betterwp.net/282-wordpress-constants/
  */
 define( 'WP_USE_THEMES', true );
+
+/*
+ * Loads the WordPress environment and template.
+ *
+ * This will make WordPress conditionals available.
+ *
+ * Reference: http://codex.wordpress.org/Conditional_Tags
+ */
+require( './wp-blog-header.php' );
+
+/*----------------------------------------------------------------------*
+ * Caching
+ *----------------------------------------------------------------------*/
+
+/*--------------------------------------------*
+ * Start Timing Page Execution
+ *--------------------------------------------*/
+ 
+$start = microtime();
 
 /*--------------------------------------------*
  * Initialize Predis
@@ -71,19 +84,16 @@ $redis = new Predis\Client(
  * Server Variables
  *--------------------------------------------*/
 
+// Get host.
 $domain = $_SERVER['HTTP_HOST'];
+
+// Get URL and remove caching query parameters.
 $url = 'http://' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
 $url = str_replace( '?r=y', '', $url );
 $url = str_replace( '?c=y', '', $url );
-$dkey = md5( $domain );
-$ukey = md5( $url );
 
 // Check that the page isn't a comment submission.
 $submit = isset( $_POST['comment_post_ID'] ) ? 1 : 0;
-
-// Check if user is logged into WordPress or not.
-$cookie = var_export( $_COOKIE, true );
-$loggedin = preg_match( '/wordpress_logged_in/', $cookie );
 
 /*--------------------------------------------*
  * Caching Scenarios
@@ -105,7 +115,7 @@ $loggedin = preg_match( '/wordpress_logged_in/', $cookie );
  *     - Not RSS
  *     - Not on the home / index page
  */
-if ( $redis->hexists( $dkey, $ukey ) && ! $loggedin && ! $submit && ! strpos( $url, '/feed/' ) && '/' != $_SERVER["REQUEST_URI"] ) {
+if ( $redis->hexists( $domain, $url ) && ! is_user_logged_in() && ! $submit && ! is_feed() && ! is_front_page() ) {
 
     // Pull the page from the cache.
     echo $redis->hget( $dkey, $ukey );
@@ -122,7 +132,6 @@ if ( $redis->hexists( $dkey, $ukey ) && ! $loggedin && ! $submit && ! strpos( $u
 } else if ( $submit || ( isset( $_GET['r'] ) && 'y' == $_GET['r'] ) ) {
 
     // Delete the page from the cache.
-    require( './wp-blog-header.php' );
     $redis->hdel( $dkey, $ukey );
     
     wpd_display_log( 'cache of page deleted' );
@@ -134,9 +143,7 @@ if ( $redis->hexists( $dkey, $ukey ) && ! $loggedin && ! $submit && ! strpos( $u
  *     - User is logged in
  *     - Clear the entire site cache query string flag (?c=y)
  */
-} else if ( $loggedin && ( isset( $_GET['c'] ) && 'y' == $_GET['c'] ) ) {
-
-    require( 'wp-blog-header.php' );
+} else if ( is_user_logged_in() && ( isset( $_GET['c'] ) && 'y' == $_GET['c'] ) ) {
 
     // Check if there is anything cached.
     if ( $redis->exists( $dkey ) ) {
@@ -158,10 +165,9 @@ if ( $redis->hexists( $dkey, $ukey ) && ! $loggedin && ! $submit && ! strpos( $u
  * Criteria:
  *     - User is logged in
  */
-} else if ( $loggedin ) {
+} else if ( is_user_logged_in() ) {
 
     // Don't cache anything. Logged in users always see the site as is.
-    require( 'wp-blog-header.php' );
     wpd_display_log( 'not cached, user is logged in' );
 
 /*
@@ -174,8 +180,6 @@ if ( $redis->hexists( $dkey, $ukey ) && ! $loggedin && ! $submit && ! strpos( $u
 
     // Turn on the output buffer.
     ob_start();
-
-    require( 'wp-blog-header.php' );
 
     // Read the contents of the output buffer.
     $html = ob_get_contents();
