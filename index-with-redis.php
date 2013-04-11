@@ -118,7 +118,7 @@ $submit = isset( $_POST['comment_post_ID'] ) ? 1 : 0;
 if ( $redis->hexists( $domain, $url ) && ! is_user_logged_in() && ! $submit && ! is_feed() && ! is_front_page() ) {
 
     // Pull the page from the cache.
-    echo $redis->hget( $dkey, $ukey );
+    echo $redis->hget( $domain, $url );
     $cached = 1;
     wpd_display_log( 'this is a cache' );
 
@@ -132,7 +132,7 @@ if ( $redis->hexists( $domain, $url ) && ! is_user_logged_in() && ! $submit && !
 } else if ( $submit || ( isset( $_GET['r'] ) && 'y' == $_GET['r'] ) ) {
 
     // Delete the page from the cache.
-    $redis->hdel( $dkey, $ukey );
+    $redis->hdel( $domain, $url );
     
     wpd_display_log( 'cache of page deleted' );
 
@@ -146,10 +146,10 @@ if ( $redis->hexists( $domain, $url ) && ! is_user_logged_in() && ! $submit && !
 } else if ( is_user_logged_in() && ( isset( $_GET['c'] ) && 'y' == $_GET['c'] ) ) {
 
     // Check if there is anything cached.
-    if ( $redis->exists( $dkey ) ) {
+    if ( $redis->exists( $domain ) ) {
 
         // Delete the entire cache.
-        $redis->del( $dkey );
+        $redis->del( $domain );
         wpd_display_log( 'domain cache flushed' );
         
     } else {
@@ -194,7 +194,7 @@ if ( $redis->hexists( $domain, $url ) && ! is_user_logged_in() && ! $submit && !
     if ( ! is_404() && ! is_search() ) {
 
         // Store the contents of the page in the cache.
-        $redis->hset( $dkey, $ukey, $html );
+        $redis->hset( $domain, $url, $html );
 
         // Set cached page to expire in one week.
         $redis->expireat( 'expire in 1 week', strtotime( '+1 week' ) );
@@ -207,6 +207,7 @@ if ( $redis->hexists( $domain, $url ) && ! is_user_logged_in() && ! $submit && !
 /*--------------------------------------------*
  * End Timing Page Execution
  *--------------------------------------------*/
+
 $end = microtime(); 
 
 // Check if we need to add a cache comment.
