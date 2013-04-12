@@ -83,8 +83,11 @@ $comment_submitted = isset( $_POST['comment_post_ID'] ) ? true : false;
 // Determines if a user is logged into WordPress.
 $is_user_logged_in = preg_match( '/wordpress_logged_in/', var_export( $_COOKIE, true ) );
 
-// Determines if feed is being requested.
+// Determines if the feed is being requested.
 $is_feed = ( false !== strpos( $path, '/feed/' ) );
+
+// Determines if the page being requested is an index page.
+$is_index = ( 'index' === get_page_type( $path ) );
 
 // Creates domain key.
 $domain_key = $domain . ':' . get_page_type( $path );
@@ -104,7 +107,7 @@ $domain_key = $domain . ':' . get_page_type( $path );
  * It cannot be called from within a function, so we must leave all those calls out here.
  */
 
-if ( is_page_cache_available( $redis, $domain_key, $path, $is_user_logged_in, $comment_submitted, $is_feed ) ) {
+if ( is_page_cache_available( $redis, $domain_key, $path, $is_user_logged_in, $comment_submitted, $is_index, $is_feed ) ) {
 
     use_page_cache( $redis, $domain_key, $path );
 
@@ -293,18 +296,20 @@ function is_cache_deletable( $is_user_logged_in ) {
  *     - User is not logged in
  *     - Not submitting a comment
  *     - Not an RSS request
+ *     - Not an index page (for now)
  *
  * @param   class       $redis              The Redis class for interacting with the data store.
  * @param   string      $domain_key         The domain / page type Redis hash key.
  * @param   string      $path               The URL path of the page being loaded.
  * @param   boolean     $is_user_logged_in  Flag to check if user is logged in.
  * @param   boolean     $comment_submitted  Flag to check if a comment has just been submitted.
+ * @param   boolean     $is_index           Flag to check if page request is an index page.
  * @param   boolean     $is_feed            Flag to check if page request is coming from a feed.
  * @return  boolean                         If the page is already cached and can be used.
  */
-function is_page_cache_available( $redis, $domain_key, $path, $is_user_logged_in, $comment_submitted, $is_feed ) {
+function is_page_cache_available( $redis, $domain_key, $path, $is_user_logged_in, $comment_submitted, $is_index, $is_feed ) {
 
-    return ( $redis->hexists( $domain_key, $path ) && ! $is_user_logged_in && ! $comment_submitted && ! $is_feed );
+    return ( $redis->hexists( $domain_key, $path ) && ! $is_user_logged_in && ! $comment_submitted && ! $is_index && ! $is_feed );
 
 } // end is_page_cache_available
 
