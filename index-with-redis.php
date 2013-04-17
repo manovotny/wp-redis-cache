@@ -111,14 +111,14 @@ if ( is_page_cache_available( $redis, $domain_key, $path, $is_user_logged_in, $c
 
     use_page_cache( $redis, $domain_key, $path );
 
-} else if ( is_page_cache_deletable( $is_user_logged_in ) ) {
+} else if ( is_page_cache_deletable( $comment_submitted ) ) {
 
     // Let WordPress create the page.
     require( $wp_blog_header_path );
 
     delete_page_cache( $redis, $domain_key, $path );
 
-} else if ( is_cache_deletable( $comment_submitted ) ) {
+} else if ( is_cache_deletable( $is_user_logged_in ) ) {
 
     // Let WordPress create the page.
     require( $wp_blog_header_path );
