@@ -69,18 +69,14 @@ $start = microtime();
  * It cannot be called from within a function, so we must leave all those calls out here.
  */
 
-if ( is_page_cache_available() ) {
-
-    use_page_cache();
-
-} else if ( is_page_cache_deletable() ) {
+if ( is_page_cache_deletable() ) {
 
     // Let WordPress create the page.
     require 'wp-blog-header.php';
 
     delete_page_cache();
 
-} else if ( is_cache_deletable() ) {
+} else if ( is_domain_cache_deletable() ) {
 
     // Let WordPress create the page.
     require 'wp-blog-header.php';
@@ -93,6 +89,10 @@ if ( is_page_cache_available() ) {
     require 'wp-blog-header.php';
 
     bypass_cache();
+
+} else if ( is_page_cache_available() ) {
+
+    use_page_cache();
 
 } else {
 
@@ -170,29 +170,18 @@ function delete_cache() {
 
     global $wpredis;
 
-    // Check if there is anything cached.
-    if ( $wpredis->redis->exists( $wpredis->key ) ) {
+    // Get all keys for the domain.
+    $keys = $wpredis->redis->keys( $wpredis->domain . '*' );
 
-        // Get all keys for the domain.
-        $keys = $wpredis->redis->keys( $wpredis->key . '*' );
+    // Loop over keys since we are using Redis objects to group types of pages together.
+    foreach ( $keys as $key ) {
 
-        // Loop over keys since we are using Redis objects to group types of pages together.
-        foreach ( $keys as $key ) {
+        // Delete key.
+        $wpredis->redis->del( $key );
 
-            // Delete key.
-            $wpredis->redis->del( $key );
+    }
 
-        }
-
-        log_message( 'domain cache flushed' );
-
-    } else {
-
-        // No cache to delete.
-
-        log_message( 'no cache to flush' );
-
-    } // end if/else
+    log_message( 'domain cache deleted' );
 
 } // end delete_cache
 
@@ -211,21 +200,21 @@ function delete_page_cache() {
 } // end delete_page_cache
 
 /**
- * Checks to see if the entire cache should be deleted.
+ * Checks to see if the domain cache should be deleted.
  *
  * Criteria:
  *     - User is logged in
- *     - Clear entire cache query string (?c=y) is provided
+ *     - Clear domain cache query string is provided
  *
- * @return  boolean     If the entire cache can be deleted.
+ * @return  boolean     If the domain cache can be deleted.
  */
-function is_cache_deletable() {
+function is_domain_cache_deletable() {
 
     global $wpredis;
 
-    return ( $wpredis->is_user_logged_in && ( isset( $_GET['c'] ) && 'y' == $_GET['c'] ) );
+    return ( $wpredis->is_user_logged_in && $wpredis->has_delete_domain_cache_query_string );
 
-} // end is_cache_deletable
+} // end is_domain_cache_deletable
 
 /**
  * Checks to see if the page is already cached and can be used.
@@ -251,13 +240,15 @@ function is_page_cache_available() {
  * Checks to see if the cached page should be deleted.
  *
  * Criteria:
- *     - Clear page cache query string (?r=y) is provided
+ *     - Clear page cache query string is provided
  *
  * @return  boolean     If the page cache can be deleted.
  */
 function is_page_cache_deletable() {
 
-    return ( isset( $_GET['r'] ) && 'y' == $_GET['r'] );
+    global $wpredis;
+
+    return ( $wpredis->has_delete_page_cache_query_string );
 
 } // end is_page_cache_deletable
 

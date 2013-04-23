@@ -90,6 +90,24 @@ class WP_Redis {
     var $excluded_categories;
 
     /**
+     * Flag to determine if `clear domain cache` query string was provided.
+     *
+     * @access public
+     * @since 1.0
+     * @var boolean
+     */
+    var $has_delete_domain_cache_query_string;
+
+    /**
+     * Flag to determine if `clear page cache` query string was provided.
+     *
+     * @access public
+     * @since 1.0
+     * @var boolean
+     */
+    var $has_delete_page_cache_query_string;
+
+    /**
      * Flag to determine if a user is logged in.
      *
      * @access public
@@ -127,7 +145,7 @@ class WP_Redis {
      *
      * @access public
      * @since 1.0
-     * @var Predis
+     * @var string
      */
     var $path;
 
@@ -136,7 +154,7 @@ class WP_Redis {
      *
      * @access public
      * @since 1.0
-     * @var Predis
+     * @var Predis\Client
      */
     var $redis;
 
@@ -185,6 +203,8 @@ class WP_Redis {
          * The following variables must be populated in this specific order. 
          * Do not rearrange them!
          */
+        $this->has_delete_domain_cache_query_string = $this->wp_redis_has_delete_domain_cache_query_string( $config );
+        $this->has_delete_page_cache_query_string = $this->wp_redis_has_delete_page_cache_query_string( $config );
         $this->path = $this->wp_redis_get_page_path();
         $this->page_type = $this->wp_redis_get_page_type();
         $this->domain = $this->wp_redis_get_domain();
@@ -231,17 +251,8 @@ class WP_Redis {
      */
     private function wp_redis_get_page_path() {
 
-        // Get requested path.
-        $path = $_SERVER['REQUEST_URI'];
-
-        // Strip `clear page` query string.
-        $path = str_replace( '?r=y', '', $path );
-
-        // Strip `clear cache` query string.
-        $path = str_replace( '?c=y', '', $path );
-
-        // Return cleansed path.
-        return $path;
+        // Get request and strip query string.
+        return str_replace( '?' . $_SERVER['QUERY_STRING'], '', $_SERVER['REQUEST_URI'] );
 
     } // end wp_redis_get_page_path
 
@@ -275,6 +286,30 @@ class WP_Redis {
         return 'single';
 
     } // end wp_redis_get_page_type
+
+    /**
+     * Checks to see if the `clear domain cache` query string was provided.
+     *
+     * @param   WP_Redis_Config     $config     The configuration file for WP Redis.
+     * @return  boolean                         If the `clear domain cache` query string was provided.
+     */
+    private function wp_redis_has_delete_domain_cache_query_string( $config ) {
+
+        return isset( $_GET[$config->delete_domain_cache_query_string] );
+
+    } // end wp_redis_has_delete_domain_cache_query_string
+
+    /**
+     * Checks to see if the `clear page cache` query string was provided.
+     *
+     * @param   WP_Redis_Config     $config     The configuration file for WP Redis.
+     * @return  boolean                         If the `clear page cache` query string was provided.
+     */
+    private function wp_redis_has_delete_page_cache_query_string( $config ) {
+
+        return isset( $_GET[$config->delete_page_cache_query_string] );
+
+    } // end wp_redis_has_delete_page_cache_query_string
 
     /**
      * Determines if user is logged in or not based on cookies set by WordPress.

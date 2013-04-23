@@ -13,6 +13,24 @@ class WP_Redis_Config {
     ---------------------------------------------------------------------------------- */
 
     /**
+     * Query string to delete domain cache.
+     *
+     * @access public
+     * @since 1.0
+     * @var array
+     */
+    var $delete_domain_cache_query_string;
+
+    /**
+     * Query string to delete page cache.
+     *
+     * @access public
+     * @since 1.0
+     * @var array
+     */
+    var $delete_page_cache_query_string;
+
+    /**
      * Categories that are excluded on the blog home / index page.
      *
      * @access public
@@ -50,10 +68,29 @@ class WP_Redis_Config {
      */
     var $site_name;
 
+    /* Constructor
+    ---------------------------------------------------------------------------------- */
+
     /**
      * Initializes class properties.
      */
     function __construct() {
+
+        // Check for delete domain query string.
+        if ( ! isset( $this->delete_domain_cache_query_string ) ) {
+
+            // Set a default delete domain query string.
+            $this->delete_domain_cache_query_string = 'delete-domain-cache';
+
+        } // end if
+
+        // Check for delete page query string.
+        if ( ! isset( $this->delete_page_cache_query_string ) ) {
+
+            // Set a default dlete page query string.
+            $this->delete_page_cache_query_string = 'delete-page-cache';
+
+        } // end if
 
         // Check for Redis host.
         if ( ! isset( $this->redis_host ) ) {
