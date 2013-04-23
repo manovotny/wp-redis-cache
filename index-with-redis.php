@@ -248,7 +248,7 @@ function is_page_cache_deletable() {
 
     global $wpredis;
 
-    return ( $wpredis->has_delete_page_cache_query_string );
+    return ( $wpredis->is_user_logged_in && $wpredis->has_delete_page_cache_query_string );
 
 } // end is_page_cache_deletable
 
