@@ -77,15 +77,13 @@ It should look something like the command below, which you will need to run in T
 1. Open the `php.ini` file via `File > Edit Template > PHP > PHP 5.3.14 php.ini`.
 2. Add `extension=redis.so` to the list of other extensions.
 
-## Running Redis
+## Redis Commands
 
-Run the following command in Terminal to start Redis:
+The following commands can be run in Terminal to interact with Redis.
 
-`redis-server /Applications/MAMP/redis/redis.conf`
-
-Run the following command in Terminal to stop Redis:
-
-`killall redis-server`
+* Start Redis: `redis-server /Applications/MAMP/redis/redis.conf`
+* Stop Redis: `killall redis-server`
+* Redis Command Line: `redis-cli`
 
 ## Credit
 
