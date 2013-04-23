@@ -1,100 +1,62 @@
 <?php
 
 /*
- * This code is based on `index-with-redis.php` by Jim Westergren & Jeedo Aquino.
- *
- * URL:	http://www.jimwestergren.com/wordpress-with-redis-as-a-frontend-cache/
- * Gist: 	https://gist.github.com/JimWestergren/3053250
+/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\ CONTENTS /\/\/\/\/\/\/\/\/\/\/\/\/\/\//\/\/\/\/\
+
+    1. WordPress
+    2. Redis
+    3. Caching
+        1. Start Timer
+        2. Caching Scenarios
+        3. End Timer
+    3. Helper Functions
+        1. Caching
+        2. Execution Time
+        3. Logging
+
+/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\//\/\/\/\/\/\/\/\/\/\
 */
 
-/*----------------------------------------------------------------------*
- * Configuration
- *----------------------------------------------------------------------*/
+/* WordPress
+---------------------------------------------------------------------------------- */
 
 /*
- * Sets the site name.
- *
- * This is used in the cache comment output.
- */
-if( ! defined( 'SITE_NAME' ) ) {
-
-    define( 'SITE_NAME', 'WP Daily' );
-
-} // end if
-
-/*
- * Sets Redis connection.
- */
-$redis_host = $_SERVER['CACHE2_HOST'];
-$redis_port = $_SERVER['CACHE2_PORT'];
-
-/*----------------------------------------------------------------------*
- * WordPress
- *----------------------------------------------------------------------*/
-
-/*
- * Tell WordPress whether or not to load the theme you’re using, which allows you to use all
- * WordPress’s functionality for something that doesn’t look like WordPress at all.
+ * Tell WordPress whether or not to load the theme you’re using, which allows you to
+ * use all WordPress’s functionality for something that does not look like WordPress
+ * at all.
  *
  * Reference: http://betterwp.net/282-wordpress-constants/
  */
 define( 'WP_USE_THEMES', true );
 
-// Set the path to the `wp-blog-header.php` file.
-$wp_blog_header_path = './wp-blog-header.php';
+/* Redis
+---------------------------------------------------------------------------------- */
 
-/*----------------------------------------------------------------------*
- * Caching
- *----------------------------------------------------------------------*/
+include_once 'wp-content/plugins/wp-redis-cache/setup.php';
 
-/*--------------------------------------------*
- * Start Timing Page Execution
- *--------------------------------------------*/
+global $wpredis;
+
+// Check if Redis is ready for use.
+if ( ! isset( $wpredis, $wpredis->redis ) ) {
+
+    // Let WordPress create the page.
+    require 'wp-blog-header.php';
+
+    // Redis was not setup correctly.
+    exit();
+
+} // end if
+
+/* Caching
+---------------------------------------------------------------------------------- */
+
+/* Start Timer
+---------------------------------------------- */
 
 $start = microtime();
 
-/*--------------------------------------------*
- * Initialize Predis
- *--------------------------------------------*/
-
-include( './predis.php' );
-$redis = new Predis\Client(
-    array(
-        'host'   => $redis_host,
-        'port'   => $redis_port
-    )
-);
-
-/*--------------------------------------------*
- * Page Request Details
- *--------------------------------------------*/
-
-// Get domain.
-$domain = $_SERVER['HTTP_HOST'];
-
-// Get the requested URL path and remove caching query parameters.
-$path = $_SERVER['REQUEST_URI'];
-$path = str_replace( '?r=y', '', $path );
-$path = str_replace( '?c=y', '', $path );
-
-// Determines if a comment is being submitted.
-$comment_submitted = isset( $_POST['comment_post_ID'] ) ? true : false;
-
-// Determines if a user is logged into WordPress.
-$is_user_logged_in = preg_match( '/wordpress_logged_in/', var_export( $_COOKIE, true ) );
-
-// Determines if the feed is being requested.
-$is_feed = ( false !== strpos( $path, '/feed/' ) );
-
-// Determines if the page being requested is an index page.
-$is_index = ( 'index' === get_page_type( $path ) );
-
-// Creates domain key.
-$domain_key = $domain . ':' . get_page_type( $path );
-
-/*--------------------------------------------*
- * Caching Scenarios
- *--------------------------------------------*/
+/* Caching Scenarios
+---------------------------------------------- */
 
 /*
  * Caching settings and vales are based on PHP and Redis best practices.
@@ -107,28 +69,28 @@ $domain_key = $domain . ':' . get_page_type( $path );
  * It cannot be called from within a function, so we must leave all those calls out here.
  */
 
-if ( is_page_cache_available( $redis, $domain_key, $path, $is_user_logged_in, $comment_submitted, $is_index, $is_feed ) ) {
+if ( is_page_cache_available() ) {
 
-    use_page_cache( $redis, $domain_key, $path );
+    use_page_cache();
 
-} else if ( is_page_cache_deletable( $comment_submitted ) ) {
-
-    // Let WordPress create the page.
-    require( $wp_blog_header_path );
-
-    delete_page_cache( $redis, $domain_key, $path );
-
-} else if ( is_cache_deletable( $is_user_logged_in ) ) {
+} else if ( is_page_cache_deletable() ) {
 
     // Let WordPress create the page.
-    require( $wp_blog_header_path );
+    require 'wp-blog-header.php';
 
-    delete_cache( $redis, $domain_key );
+    delete_page_cache();
 
-} else if ( $is_user_logged_in ) {
+} else if ( is_cache_deletable() ) {
 
     // Let WordPress create the page.
-    require( $wp_blog_header_path );
+    require 'wp-blog-header.php';
+
+    delete_cache();
+
+} else if ( $wpredis->is_user_logged_in ) {
+
+    // Let WordPress create the page.
+    require 'wp-blog-header.php';
 
     bypass_cache();
 
@@ -138,7 +100,7 @@ if ( is_page_cache_available( $redis, $domain_key, $path, $is_user_logged_in, $c
     ob_start();
 
     // Let WordPress create the page.
-    require( $wp_blog_header_path );
+    require 'wp-blog-header.php';
 
     // Read contents of the output buffer.
     $page_content = ob_get_contents();
@@ -146,43 +108,23 @@ if ( is_page_cache_available( $redis, $domain_key, $path, $is_user_logged_in, $c
     // Clean and close the output buffer.
     ob_end_clean();
 
-    cache_page( $redis, $domain_key, $path, $page_content );
+    cache_page( $page_content );
 
 }
 
-/*--------------------------------------------*
- * End Timing Page Execution
- *--------------------------------------------*/
+/* End Timer
+---------------------------------------------- */
 
 $end = microtime();
 
 // Log execution time.
 wpd_display_log( get_execution_time( $start, $end ) );
 
-/*----------------------------------------------------------------------*
- * Helper Functions
- *----------------------------------------------------------------------*/
+/* Helper Functions
+---------------------------------------------------------------------------------- */
 
-/*--------------------------------------------*
- * Page Details
- *--------------------------------------------*/
-
-/**
- * Determines if the page being requested is an index page or a single page.
- *
- * @param   string  $path   The URL path of the page being loaded.
- * @return  string          The type of page being loaded, either `index` or `single`.
- */
-
-function get_page_type( $path ) {
-
-    return ( false !== strpos( $path, '/page/' ) ) ? 'index' : 'single';
-
-} // end get_page_type
-
-/*--------------------------------------------*
- * Caching Scenarios
- *--------------------------------------------*/
+/* Caching
+---------------------------------------------- */
 
 /**
  * Bypasses using a cached page.
@@ -197,12 +139,11 @@ function bypass_cache() {
 /**
  * Adds page to cache.
  *
- * @param   class   $redis          The Redis class for interacting with the data store.
- * @param   string  $domain_key     The domain / page type Redis hash key.
- * @param   string  $path           The URL path of the page being loaded.
  * @param   string  $page_content   The content of the page being loaded.
  */
-function cache_page( $redis, $domain_key, $path, $page_content ) {
+function cache_page( $page_content ) {
+
+    global $wpredis;
 
     // Display page source.
     echo $page_content;
@@ -211,10 +152,10 @@ function cache_page( $redis, $domain_key, $path, $page_content ) {
     if ( ! is_404() && ! is_search() ) {
 
         // Store the contents of the page in the cache.
-        $redis->hset( $domain_key, $path, $page_content );
+        $wpredis->redis->hset( $wpredis->key, $wpredis->path, $page_content );
 
         // Set cached page to expire in one week.
-        $redis->expireat( 'expire in 1 week', strtotime( '+1 week' ) );
+        $wpredis->redis->expireat( 'expire in 1 week', strtotime( '+1 week' ) );
 
         wpd_display_log( 'cache is set' );
 
@@ -224,23 +165,22 @@ function cache_page( $redis, $domain_key, $path, $page_content ) {
 
 /**
  * Deletes entire cache.
- *
- * @param   class   $redis          The Redis class for interacting with the data store.
- * @param   string  $domain_key     The domain / page type Redis hash key.
  */
-function delete_cache( $redis, $domain_key ) {
+function delete_cache() {
+
+    global $wpredis;
 
     // Check if there is anything cached.
-    if ( $redis->exists( $domain_key ) ) {
+    if ( $wpredis->redis->exists( $wpredis->key ) ) {
 
         // Get all keys for the domain.
-        $keys = $redis->keys( $domain_key . '*' );
+        $keys = $wpredis->redis->keys( $wpredis->key . '*' );
 
         // Loop over keys since we are using Redis objects to group types of pages together.
         foreach ( $keys as $key ) {
 
             // Delete key.
-            $redis->del( $key );
+            $wpredis->redis->del( $key );
 
         }
 
@@ -258,15 +198,13 @@ function delete_cache( $redis, $domain_key ) {
 
 /**
  * Deletes page from cache.
- *
- * @param   class   $redis          The Redis class for interacting with the data store.
- * @param   string  $domain_key     The domain / page type Redis hash key.
- * @param   string  $path           The URL path of the page being loaded.
  */
-function delete_page_cache( $redis, $domain_key, $path ) {
+function delete_page_cache() {
+
+    global $wpredis;
 
     // Delete the page from the cache.
-    $redis->hdel( $domain_key, $path );
+    $wpredis->redis->hdel( $wpredis->key, $wpredis->path );
 
     wpd_display_log( 'cache of page deleted' );
 
@@ -279,12 +217,13 @@ function delete_page_cache( $redis, $domain_key, $path ) {
  *     - User is logged in
  *     - Clear entire cache query string (?c=y) is provided
  *
- * @param   boolean     $is_user_logged_in  Flag to check if user is logged in.
- * @return  boolean                         If the entire cache can be deleted.
+ * @return  boolean     If the entire cache can be deleted.
  */
-function is_cache_deletable( $is_user_logged_in ) {
+function is_cache_deletable() {
 
-    return ( $is_user_logged_in && ( isset( $_GET['c'] ) && 'y' == $_GET['c'] ) );
+    global $wpredis;
+
+    return ( $wpredis->is_user_logged_in && ( isset( $_GET['c'] ) && 'y' == $_GET['c'] ) );
 
 } // end is_cache_deletable
 
@@ -298,18 +237,13 @@ function is_cache_deletable( $is_user_logged_in ) {
  *     - Not an RSS request
  *     - Not an index page (for now)
  *
- * @param   class       $redis              The Redis class for interacting with the data store.
- * @param   string      $domain_key         The domain / page type Redis hash key.
- * @param   string      $path               The URL path of the page being loaded.
- * @param   boolean     $is_user_logged_in  Flag to check if user is logged in.
- * @param   boolean     $comment_submitted  Flag to check if a comment has just been submitted.
- * @param   boolean     $is_index           Flag to check if page request is an index page.
- * @param   boolean     $is_feed            Flag to check if page request is coming from a feed.
- * @return  boolean                         If the page is already cached and can be used.
+ * @return  boolean     If the page is already cached and can be used.
  */
-function is_page_cache_available( $redis, $domain_key, $path, $is_user_logged_in, $comment_submitted, $is_index, $is_feed ) {
+function is_page_cache_available() {
 
-    return ( $redis->hexists( $domain_key, $path ) && ! $is_user_logged_in && ! $comment_submitted && ! $is_index && ! $is_feed );
+    global $wpredis;
+
+    return ( $wpredis->redis->hexists( $wpredis->key, $wpredis->path ) && ! $wpredis->is_user_logged_in && 'feed' !== $wpredis->page_type );
 
 } // end is_page_cache_available
 
@@ -317,37 +251,32 @@ function is_page_cache_available( $redis, $domain_key, $path, $is_user_logged_in
  * Checks to see if the cached page should be deleted.
  *
  * Criteria:
- *     - Comment submitted
  *     - Clear page cache query string (?r=y) is provided
  *
- * @param   boolean     $comment_submitted  Flag to check if a comment has just been submitted.
- * @return  boolean                         If the page cache can be deleted.
+ * @return  boolean     If the page cache can be deleted.
  */
-function is_page_cache_deletable( $comment_submitted ) {
+function is_page_cache_deletable() {
 
-    return ( $comment_submitted || ( isset( $_GET['r'] ) && 'y' == $_GET['r'] ) );
+    return ( isset( $_GET['r'] ) && 'y' == $_GET['r'] );
 
 } // end is_page_cache_deletable
 
 /**
  * Gets page from cache and displays it.
- *
- * @param   class       $redis          The Redis class for interacting with the data store.
- * @param   string      $domain_key     The domain / page type Redis hash key.
- * @param   string      $path           The URL path of the page being loaded.
  */
-function use_page_cache( $redis, $domain_key, $path ) {
+function use_page_cache() {
+
+    global $wpredis;
 
     // Pull the page from the cache.
-    echo $redis->hget( $domain_key, $path );
+    echo $wpredis->redis->hget( $wpredis->key, $wpredis->path );
 
     wpd_display_log( 'this is a cache' );
 
 } // end use_page_cache
 
-/*--------------------------------------------*
- * Execution Time
- *--------------------------------------------*/
+/* Execution Time
+---------------------------------------------- */
 
 /**
  * Calculate the amount of time it took to load the page.
@@ -376,9 +305,8 @@ function get_microtime( $time ) {
 
 } // end get_microtime
 
-/*--------------------------------------------*
- * Logging
- *--------------------------------------------*/
+/* Logging
+---------------------------------------------- */
 
 /**
  * Displays a log message at the bottom of the page.
@@ -387,7 +315,17 @@ function get_microtime( $time ) {
  */
 function wpd_display_log( $message ) {
 
+    global $wpredis;
+
+    $site_name = '';
+
+    if ( isset( $wpredis->site_name ) ) {
+
+        $site_name = $wpredis->site_name;
+
+    } // end if
+
     // Display message.
-    echo '<!-- ' . SITE_NAME . ' Cache: [ ' . $message . ' ] -->';
+    echo '<!-- ' . $site_name . ' Cache: [ ' . $message . ' ] -->';
 
 } // end wpd_display_log
