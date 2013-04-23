@@ -118,7 +118,7 @@ if ( is_page_cache_available() ) {
 $end = microtime();
 
 // Log execution time.
-wpd_display_log( get_execution_time( $start, $end ) );
+log_message( get_execution_time( $start, $end ) );
 
 /* Helper Functions
 ---------------------------------------------------------------------------------- */
@@ -132,7 +132,7 @@ wpd_display_log( get_execution_time( $start, $end ) );
 function bypass_cache() {
 
     //  Logged in users always see the site as is, in real time.
-    wpd_display_log( 'not cached, user is logged in' );
+    log_message( 'not cached, user is logged in' );
 
 } // end bypass_cache
 
@@ -157,7 +157,7 @@ function cache_page( $page_content ) {
         // Set cached page to expire in one week.
         $wpredis->redis->expireat( 'expire in 1 week', strtotime( '+1 week' ) );
 
-        wpd_display_log( 'cache is set' );
+        log_message( 'cache is set' );
 
     } // end if
 
@@ -184,13 +184,13 @@ function delete_cache() {
 
         }
 
-        wpd_display_log( 'domain cache flushed' );
+        log_message( 'domain cache flushed' );
 
     } else {
 
         // No cache to delete.
 
-        wpd_display_log( 'no cache to flush' );
+        log_message( 'no cache to flush' );
 
     } // end if/else
 
@@ -206,7 +206,7 @@ function delete_page_cache() {
     // Delete the page from the cache.
     $wpredis->redis->hdel( $wpredis->key, $wpredis->path );
 
-    wpd_display_log( 'cache of page deleted' );
+    log_message( 'cache of page deleted' );
 
 } // end delete_page_cache
 
@@ -271,7 +271,7 @@ function use_page_cache() {
     // Pull the page from the cache.
     echo $wpredis->redis->hget( $wpredis->key, $wpredis->path );
 
-    wpd_display_log( 'this is a cache' );
+    log_message( 'this is a cache' );
 
 } // end use_page_cache
 
@@ -309,23 +309,15 @@ function get_microtime( $time ) {
 ---------------------------------------------- */
 
 /**
- * Displays a log message at the bottom of the page.
+ * Logs a message at the bottom of the page source.
  *
  * @param   string  $message    The message to display.
  */
-function wpd_display_log( $message ) {
+function log_message( $message ) {
 
     global $wpredis;
 
-    $site_name = '';
-
-    if ( isset( $wpredis->site_name ) ) {
-
-        $site_name = $wpredis->site_name;
-
-    } // end if
-
     // Display message.
-    echo '<!-- ' . $site_name . ' Cache: [ ' . $message . ' ] -->';
+    echo '<!-- ' . $wpredis->site_name . ' Cache: [ ' . $message . ' ] -->';
 
-} // end wpd_display_log
+} // end log_message

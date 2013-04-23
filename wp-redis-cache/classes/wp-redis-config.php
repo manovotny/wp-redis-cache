@@ -48,17 +48,14 @@ class WP_Redis_Config {
      * @since 1.0
      * @var string
      */
-    var $site_name = 'WP Daily';
-
-    /* Constructor
-    ---------------------------------------------------------------------------------- */
+    var $site_name;
 
     /**
      * Initializes class properties.
      */
     function __construct() {
 
-        // Check for redis host.
+        // Check for Redis host.
         if ( ! isset( $this->redis_host ) ) {
 
             // Set a default Redis host.
@@ -66,11 +63,19 @@ class WP_Redis_Config {
 
         } // end if
 
-        // Check for redis port.
+        // Check for Redis port.
         if ( ! isset( $this->redis_port ) ) {
 
             // Set a default Redis port.
             $this->redis_port = $_SERVER['CACHE2_PORT'];
+
+        } // end if
+
+        // Check for site name.
+        if ( ! isset( $this->site_name ) ) {
+
+            // Set a default site name.
+            $this->site_name = 'WP Redis';
 
         } // end if
 
