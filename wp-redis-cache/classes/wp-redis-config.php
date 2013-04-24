@@ -87,7 +87,7 @@ class WP_Redis_Config {
         // Check for delete page query string.
         if ( ! isset( $this->delete_page_cache_query_string ) ) {
 
-            // Set a default dlete page query string.
+            // Set a default delete page query string.
             $this->delete_page_cache_query_string = 'delete-page-cache';
 
         } // end if

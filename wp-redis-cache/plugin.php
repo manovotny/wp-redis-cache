@@ -64,7 +64,7 @@ class WP_Redis_Cache {
      */
     function __construct() {
 
-        include_once 'setup.php';
+        include_once 'wp-redis-setup.php';
 
         global $wpredis;
 

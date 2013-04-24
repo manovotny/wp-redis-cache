@@ -32,7 +32,7 @@ define( 'WP_USE_THEMES', true );
 /* Redis
 ---------------------------------------------------------------------------------- */
 
-include_once 'wp-content/plugins/wp-redis-cache/setup.php';
+include_once 'wp-redis-setup.php';
 
 global $wpredis;
 
