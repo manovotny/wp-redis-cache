@@ -155,7 +155,7 @@ function cache_page( $page_content ) {
         $wpredis->redis->hset( $wpredis->key, $wpredis->path, $page_content );
 
         // Set cached page to expire in one week.
-        $wpredis->redis->expireat( 'expire in 1 week', strtotime( '+1 week' ) );
+        $wpredis->redis->expireat( $wpredis->key, strtotime( '+1 week' ) );
 
         log_message( 'cache is set' );
 
