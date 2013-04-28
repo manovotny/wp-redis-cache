@@ -117,7 +117,8 @@ class WP_Redis_Cache {
                 $this->wp_redis_cache_delete_index_cache();
 
                 /*
-                 * It is not possible to delete the page cache in this scenario.
+                 * It is not possible to delete the page cache or the paginated comments
+                 * cache in this scenario.
                  *
                  * 1. We are saving pages to the cache based on the page URL, aka.
                  * "pretty" permalink.
@@ -129,6 +130,9 @@ class WP_Redis_Cache {
 
                 // Delete page cache.
                 //$this->wp_redis_cache_delete_page_cache( $post );
+
+                // Delete paginated comments.
+                //$this->wp_redis_cache_delete_paginated_comments( $post );
 
                 // Run position query.
                 $this->wp_redis_cache_run_post_position_query();
@@ -289,6 +293,9 @@ class WP_Redis_Cache {
         // Delete page cache.
         $this->wp_redis_cache_delete_page_cache( $post );
 
+        // Delete paginated comments.
+        $this->wp_redis_cache_delete_paginated_comments( $post );
+
         // Delete page index cache.
         $this->wp_redis_cache_delete_page_index_cache( $post );
 
@@ -305,9 +312,30 @@ class WP_Redis_Cache {
         global $wpredis;
 
         // Delete all index keys.
-        $wpredis->redis->del( $wpredis->domain . $wpredis::INDEX_KEY);
+        $wpredis->redis->del( $wpredis->get_key( $wpredis::INDEX_KEY ) );
 
     } // end wp_redis_cache_delete_index_cache
+
+    /**
+     * Deletes paginated comments related to a page.
+     *
+     * @param   WP_Post     $post   Post object.
+     */
+    function wp_redis_cache_delete_paginated_comments( $post ) {
+
+        global $wpredis;
+
+        if ( isset( $post ) ) {
+
+            // Get permalink path.
+            $path = $this->wp_redis_cache_get_permalink_path( $post );
+
+            // Delete paginated comments.
+            $wpredis->delete_paginated_comments( $path );
+
+        } // end if
+
+    } // end wp_redis_cache_delete_paginated_comments
 
     /**
      * Deletes a single page cache.
@@ -324,7 +352,10 @@ class WP_Redis_Cache {
             $path = $this->wp_redis_cache_get_permalink_path( $post );
 
             // Delete the page from the cache.
-            $wpredis->redis->hdel( $wpredis->domain . $wpredis::SINGLE_KEY, $path );
+            $wpredis->redis->hdel( $wpredis->get_key( $wpredis::SINGLE_KEY ), $path );
+
+            // Delete paginated comments.
+            $wpredis->delete_paginated_comments( $path );
 
         } // end if
 
@@ -342,7 +373,7 @@ class WP_Redis_Cache {
         if ( isset( $post ) ) {
 
             // Get index page based on post's chronological position.
-            $position = $wpredis->redis->hget( $wpredis->domain . $wpredis::POST_POSITION_KEY, $post->ID );
+            $position = $wpredis->redis->hget( $wpredis->get_key( $wpredis::POST_POSITION_KEY ), $post->ID );
 
             // Get posts per page option.
             $posts_per_page = get_option( 'posts_per_page' );
@@ -351,7 +382,7 @@ class WP_Redis_Cache {
             $page_index = ceil( $position / $posts_per_page );
 
             // Delete the index page from the cache.
-            $wpredis->redis->hdel( $wpredis->domain . $wpredis::INDEX_KEY, '/page/' . $page_index . '/' );
+            $wpredis->redis->hdel( $wpredis->get_key( $wpredis::INDEX_KEY ), '/page/' . $page_index . '/' );
 
         } // end if
 
@@ -365,7 +396,7 @@ class WP_Redis_Cache {
         global $wpredis, $wpdb;
 
         // Delete all post position caches.
-        $wpredis->redis->del( $wpredis->domain . $wpredis::POST_POSITION_KEY );
+        $wpredis->redis->del( $wpredis->get_key( $wpredis::POST_POSITION_KEY ) );
 
         // Run post position query.
         $posts = $wpdb->get_results( $wpredis::SELECT_POST_POSITION );
@@ -386,7 +417,7 @@ class WP_Redis_Cache {
                 $post_position++;
 
                 // Cache post position.
-                $wpredis->redis->hset( $wpredis->domain . $wpredis::POST_POSITION_KEY, $post->id, $post_position );
+                $wpredis->redis->hset( $wpredis->get_key( $wpredis::POST_POSITION_KEY ), $post->id, $post_position );
 
             } // end if
 

@@ -118,7 +118,7 @@ if ( is_page_cache_deletable() ) {
 $end = microtime();
 
 // Log execution time.
-log_message( get_execution_time( $start, $end ) );
+log_message( 'loaded in: ' . get_execution_time( $start, $end ) );
 
 /* Helper Functions
 ---------------------------------------------------------------------------------- */
@@ -152,10 +152,18 @@ function cache_page( $page_content ) {
     if ( ! is_404() && ! is_search() ) {
 
         // Store the contents of the page in the cache.
-        $wpredis->redis->hset( $wpredis->key, $wpredis->path, $page_content );
+        $wpredis->redis->hset( $wpredis->get_key(), $wpredis->path, $page_content );
 
         // Set cached page to expire in one week.
-        $wpredis->redis->expireat( $wpredis->key, strtotime( '+1 week' ) );
+        $wpredis->redis->expireat( $wpredis->get_key(), strtotime( '+1 week' ) );
+
+        // Check for comment pagination.
+        if ( $wpredis->has_comment_pagination ) {
+
+            // Store comment pages in a Redis set.
+            $wpredis->redis->sadd( $wpredis->get_key( $wpredis::COMMENT_KEY ), $wpredis->path );
+
+        } // end if
 
         log_message( 'cache is set' );
 
@@ -193,7 +201,10 @@ function delete_page_cache() {
     global $wpredis;
 
     // Delete the page from the cache.
-    $wpredis->redis->hdel( $wpredis->key, $wpredis->path );
+    $wpredis->redis->hdel( $wpredis->get_key(), $wpredis->path );
+
+    // Delete paginated comments.
+    $wpredis->delete_paginated_comments( $this->path_without_comment_pagination );
 
     log_message( 'cache of page deleted' );
 
@@ -232,7 +243,7 @@ function is_page_cache_available() {
 
     global $wpredis;
 
-    return ( $wpredis->redis->hexists( $wpredis->key, $wpredis->path ) && ! $wpredis->is_user_logged_in && 'feed' !== $wpredis->page_type );
+    return ( $wpredis->redis->hexists( $wpredis->get_key(), $wpredis->path ) && ! $wpredis->is_user_logged_in && 'feed' !== $wpredis->page_type );
 
 } // end is_page_cache_available
 
@@ -260,7 +271,7 @@ function use_page_cache() {
     global $wpredis;
 
     // Pull the page from the cache.
-    echo $wpredis->redis->hget( $wpredis->key, $wpredis->path );
+    echo $wpredis->redis->hget( $wpredis->get_key(), $wpredis->path );
 
     log_message( 'this is a cache' );
 
