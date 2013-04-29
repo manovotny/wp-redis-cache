@@ -116,23 +116,11 @@ class WP_Redis_Cache {
                 // Delete index cache.
                 $this->wp_redis_cache_delete_index_cache();
 
-                /*
-                 * It is not possible to delete the page cache or the paginated comments
-                 * cache in this scenario.
-                 *
-                 * 1. We are saving pages to the cache based on the page URL, aka.
-                 * "pretty" permalink.
-                 *
-                 * 2. Since the post was removed from the public timeline, WordPress
-                 * has already removed the "pretty" permalink and replaced it with
-                 * the "fugly" permalink (ie. ?p=1234).
-                 */
-
                 // Delete page cache.
-                //$this->wp_redis_cache_delete_page_cache( $post );
+                $this->wp_redis_cache_delete_page_cache( $post );
 
                 // Delete paginated comments.
-                //$this->wp_redis_cache_delete_paginated_comments( $post );
+                $this->wp_redis_cache_delete_paginated_comments( $post );
 
                 // Run position query.
                 $this->wp_redis_cache_run_post_position_query();
@@ -211,8 +199,29 @@ class WP_Redis_Cache {
      */
     function wp_redis_cache_get_permalink_path( $post ) {
 
-        // Get post's permalink
-        $permalink = get_permalink( $post->ID );
+        /*
+         * When a post is removed from the public timeline, WordPress
+         * removes the "pretty" permalink and replaces it with a placeholder
+         * "fugly" permalink (ie. ?p=1234).
+         *
+         * We need to check if the post is published or not. If it is not,
+         * then we need to generate a sample permalink like the WordPress
+         * admin does.
+         */
+
+        // Check if post is published.
+        if ( $this::PUBLISH === $post->post_status ) {
+
+            // Get post's permalink
+            $permalink = get_permalink( $post->ID );
+
+        } else {
+
+            // Generate a sample permalink.
+            list( $permalink, $post_name ) = get_sample_permalink( $post->ID );
+            $permalink = str_replace( '%postname%', $post_name, $permalink );
+
+        } // end if
 
         // Return just the path portion of the post permalink URL.
         return parse_url( $permalink, PHP_URL_PATH );
