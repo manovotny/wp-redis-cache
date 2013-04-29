@@ -201,7 +201,8 @@ class WP_Redis {
         $config = new WP_Redis_Config();
 
         // Include Predis.
-        include_once realpath( __DIR__ . '/../lib/predis.php' );
+        include_once realpath( __DIR__ . '/../predis/lib/Predis/Autoloader.php' );
+        Predis\Autoloader::register();
 
         // Get Redis client.
         $this->redis  = new Predis\Client(
