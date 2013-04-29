@@ -34,9 +34,10 @@ There are two ways to install WordPress plugins: via the WordPress Dashboard (re
 
 ## Contributors
 
-* [Tom McFarlin](http://tommcfarlin.com/)
-* [Daniel Novotny](http://metalseed.com/)
-* [Michael Novotny](http://manovotny.com/)
+* [Tom McFarlin](https://twitter.com/tommcfarlin)
+* [Daniel Novotny](https://twitter.com/misternovoto)
+* [Michael Novotny](https://twitter.com/manovotny)
+* [Andrey Savchenko](https://twitter.com/Rarst)
 
 ## Attribution
 
