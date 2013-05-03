@@ -223,7 +223,7 @@ function is_bypass_cache() {
 
     global $wpredis;
 
-    return ( $wpredis->is_user_logged_in && 'feed' === $wpredis->page_type );
+    return ( $wpredis->is_user_logged_in || 'feed' === $wpredis->page_type );
 
 } // end is_bypass_cache
 
