@@ -83,7 +83,7 @@ if ( is_page_cache_deletable() ) {
 
     delete_cache();
 
-} else if ( $wpredis->is_user_logged_in ) {
+} else if ( is_bypass_cache() ) {
 
     // Let WordPress create the page.
     require 'wp-blog-header.php';
@@ -131,8 +131,8 @@ log_message( 'loaded in: ' . get_execution_time( $start, $end ) );
  */
 function bypass_cache() {
 
-    //  Logged in users always see the site as is, in real time.
-    log_message( 'not cached, user is logged in' );
+    // Log message about using cache.
+    log_message( 'raw page, bypassing cache (logged in or rss)' );
 
 } // end bypass_cache
 
@@ -209,6 +209,23 @@ function delete_page_cache() {
     log_message( 'cache of page deleted' );
 
 } // end delete_page_cache
+
+/**
+ * Checks to see if we should bypass the cache (aka. show raw page).
+ *
+ * Criteria:
+ *     - User is logged in
+ *     - RSS request
+ *
+ * @return  boolean     If the cache should be bypassed.
+ */
+function is_bypass_cache() {
+
+    global $wpredis;
+
+    return ( $wpredis->is_user_logged_in && 'feed' === $wpredis->page_type );
+
+} // end is_bypass_cache
 
 /**
  * Checks to see if the domain cache should be deleted.
