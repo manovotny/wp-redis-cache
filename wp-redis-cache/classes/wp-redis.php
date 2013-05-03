@@ -333,7 +333,8 @@ class WP_Redis {
      */
     private function get_domain() {
 
-        return $_SERVER['HTTP_HOST'];
+        // Get host and strip `www` subdomain, but leave all others alone.
+        return str_replace( 'www.', '', $_SERVER['HTTP_HOST'] );
 
     } // end get_domain
 
