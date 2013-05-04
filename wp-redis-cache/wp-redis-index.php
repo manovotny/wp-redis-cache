@@ -110,7 +110,9 @@ if ( is_page_cache_deletable() ) {
 
     cache_page( $page_content );
 
-}
+} // end if / else
+
+create_required_caches();
 
 /* End Timer
 ---------------------------------------------- */
@@ -170,6 +172,23 @@ function cache_page( $page_content ) {
     } // end if
 
 } // end cache_page
+
+/**
+ * Creates required caches for plugin to function properly.
+ */
+function create_required_caches() {
+
+    global $wpredis;
+
+    // Check if post position key needs to be created.
+    if ( ! $wpredis->redis->exists( $wpredis->get_key( $wpredis::POST_POSITION_KEY ) ) ) {
+
+        // Run post position query.
+        $wpredis->run_post_position_query();
+
+    } // end if
+
+} // end create_required_caches
 
 /**
  * Deletes entire cache.

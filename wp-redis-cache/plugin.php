@@ -24,7 +24,6 @@ License URI: http://www.gnu.org/licenses/gpl-3.0.html
         1. Posts
         2. Comments
         3. Redis
-        4. PHP
     4. Instantiation
 
 /\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\//\/\/\/\/\/\/\/\/\/\
@@ -98,6 +97,8 @@ class WP_Redis_Cache {
      */
     function wp_redis_cache_transition_post_status( $new_status, $old_status, $post ) {
 
+        global $wpredis;
+
         // Do not process revisions
         if ( ! $this->wp_redis_cache_is_post_revision( $post ) ) {
 
@@ -108,7 +109,7 @@ class WP_Redis_Cache {
                 $this->wp_redis_cache_delete_index_cache();
 
                 // Run position query.
-                $this->wp_redis_cache_run_post_position_query();
+                $wpredis->run_post_position_query();
 
             // Check if post was removed
             } else if ( $this->wp_redis_cache_was_post_removed( $new_status, $old_status ) ) {
@@ -123,7 +124,7 @@ class WP_Redis_Cache {
                 $this->wp_redis_cache_delete_paginated_comments( $post );
 
                 // Run position query.
-                $this->wp_redis_cache_run_post_position_query();
+                $wpredis->run_post_position_query();
 
             // Check if post was updated.
             } else if ( $this->wp_redis_cache_was_post_updated( $new_status, $old_status ) ) {
@@ -396,82 +397,6 @@ class WP_Redis_Cache {
         } // end if
 
     } // end delete_index_position_cache
-
-    /**
-     * Runs position query and adds post positions to the cache.
-     */
-    function wp_redis_cache_run_post_position_query() {
-
-        global $wpredis, $wpdb;
-
-        // Delete all post position caches.
-        $wpredis->redis->del( $wpredis->get_key( $wpredis::POST_POSITION_KEY ) );
-
-        // Run post position query.
-        $posts = $wpdb->get_results( $wpredis::SELECT_POST_POSITION );
-
-        // Reset post position.
-        $post_position = 0;
-
-        // Loop over published posts.
-        foreach ( $posts as $post ) {
-
-            // Get the post categories
-            $post_categories = wp_get_post_categories( $post->id );
-
-            // Check if post category is being excluded on the index page.
-            if ( ! $this->wp_redis_cache_in_array( $wpredis->excluded_categories, $post_categories ) ) {
-
-                // Increment post position.
-                $post_position++;
-
-                // Cache post position.
-                $wpredis->redis->hset( $wpredis->get_key( $wpredis::POST_POSITION_KEY ), $post->id, $post_position );
-
-            } // end if
-
-        } // end foreach
-
-    } // end wp_redis_cache_run_post_position_query
-
-    /* PHP
-    ---------------------------------------------------------------- */
-
-    /**
-     * This has to be used because `in_array` is broke when `needle` is
-     * an array (aka. comparing an array to an array).
-     *
-     * @param   array       $needles    Array of vales to look for.
-     * @param   array       $haystacks  Array of values to look in.
-     * @return  boolean                 If a value within `needles` was found in `haystacks`.
-     */
-    function wp_redis_cache_in_array( $needles, $haystacks ) {
-
-        // Remove array keys.
-        $needles = array_values( $needles );
-        $haystacks = array_values( $haystacks );
-
-        // Loop over needles.
-        foreach ( $needles as $needle ) {
-
-            // Loop over haystacks
-            foreach ( $haystacks as $haystack ) {
-
-                // Compare values
-                if ( $needle === $haystack ) {
-
-                    // Value matched.
-                    return true;
-
-                } // end if
-
-            } // end foreach
-
-        } // end foreach
-
-        // No values matched.
-        return false;
-    }
 
 } // end class
 

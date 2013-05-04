@@ -321,10 +321,84 @@ class WP_Redis {
         // Delete paginated comment references.
         $this->redis->del( $comment_key );
         
-    } // end delete_paginated_comments 
+    } // end delete_paginated_comments
+
+    /**
+     * Runs position query and adds post positions to the cache.
+     */
+    function run_post_position_query() {
+
+        global $wpdb;
+
+        // Delete all post position caches.
+        $this->redis->del( $this->get_key( $this::POST_POSITION_KEY ) );
+
+        // Run post position query.
+        $posts = $wpdb->get_results( $this::SELECT_POST_POSITION );
+
+        // Reset post position.
+        $post_position = 0;
+
+        // Loop over published posts.
+        foreach ( $posts as $post ) {
+
+            // Get the post categories
+            $post_categories = wp_get_post_categories( $post->id );
+
+            // Check if post category is being excluded on the index page.
+            if ( ! $this->array_in_array( $this->excluded_categories, $post_categories ) ) {
+
+                // Increment post position.
+                $post_position++;
+
+                // Cache post position.
+                $this->redis->hset( $this->get_key( $this::POST_POSITION_KEY ), $post->id, $post_position );
+
+            } // end if
+
+        } // end foreach
+
+    } // end run_post_position_query
 
     /* Private
     ---------------------------------------------- */
+
+    /**
+     * This has to be used because `in_array` is broke when `needle` is
+     * an array (aka. comparing an array to an array).
+     *
+     * @param   array       $needles    Array of vales to look for.
+     * @param   array       $haystacks  Array of values to look in.
+     * @return  boolean                 If a value within `needles` was found in `haystacks`.
+     */
+    private function array_in_array( $needles, $haystacks ) {
+
+        // Remove array keys.
+        $needles = array_values( $needles );
+        $haystacks = array_values( $haystacks );
+
+        // Loop over needles.
+        foreach ( $needles as $needle ) {
+
+            // Loop over haystacks
+            foreach ( $haystacks as $haystack ) {
+
+                // Compare values
+                if ( $needle === $haystack ) {
+
+                    // Value matched.
+                    return true;
+
+                } // end if
+
+            } // end foreach
+
+        } // end foreach
+
+        // No values matched.
+        return false;
+
+    } // end array_in_array
 
     /**
      * Gets the domain of the page being loaded.
