@@ -207,14 +207,19 @@ class WP_Redis {
 
         // Include configuration class.
         include_once 'wp-redis-config.php';
+
+        // Instantiate configuration.
         $config = new WP_Redis_Config();
+
+        // Set configuration defaults.
+        $this->set_configuration_defaults( $config );
 
         // Include Predis.
         include_once realpath( __DIR__ . '/../predis/lib/Predis/Autoloader.php' );
         Predis\Autoloader::register();
 
-        // Get Redis client.
-        $this->redis  = new Predis\Client(
+        // Setup Redis client.
+        $this->redis = new Predis\Client(
             array(
                 'host' => $config->redis_host,
                 'port' => $config->redis_port
@@ -555,5 +560,64 @@ class WP_Redis {
         return ( preg_match( '/wordpress_logged_in/', var_export( $_COOKIE, true ) ) );
 
     } // end is_user_logged_in
+
+    /**
+     * Determines if user is logged in or not based on cookies set by WordPress.
+     *
+     * @param   WP_Redis_Config     $config     The configuration file for WP Redis.
+     * @return  boolean     Flag to check if user is logged in.
+     */
+
+    private function set_configuration_defaults( $config ) {
+
+        // Check for delete domain query string.
+        if ( ! isset( $config->delete_domain_cache_query_string ) ) {
+
+            // Set a default delete domain query string.
+            $config->delete_domain_cache_query_string = 'delete-domain-cache';
+
+        } // end if
+
+        // Check for delete page query string.
+        if ( ! isset( $config->delete_page_cache_query_string ) ) {
+
+            // Set a default delete page query string.
+            $config->delete_page_cache_query_string = 'delete-page-cache';
+
+        } // end if
+
+        // Check for Redis host.
+        if ( ! isset( $config->redis_host ) ) {
+
+            // Set a default Redis host.
+            $config->redis_host = $_SERVER['CACHE2_HOST'];
+
+        } // end if
+
+        // Check for Redis port.
+        if ( ! isset( $config->redis_port ) ) {
+
+            // Set a default Redis port.
+            $config->redis_port = $_SERVER['CACHE2_PORT'];
+
+        } // end if
+
+        // Check for site name.
+        if ( ! isset( $config->site_name ) ) {
+
+            // Set a default site name.
+            $config->site_name = 'WP Redis';
+
+        } // end if
+
+        // Check for search query string
+        if ( ! isset( $config->search_query_string ) ) {
+
+            // Set a default search query string.
+            $config->search_query_string = 's';
+
+        } // end if
+
+    } // end set_configuration_defaults
 
 } // end class
