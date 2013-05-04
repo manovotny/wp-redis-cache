@@ -128,6 +128,15 @@ class WP_Redis {
     var $has_delete_page_cache_query_string;
 
     /**
+     * Flag to determine if requested page is a search page.
+     *
+     * @access public
+     * @since 1.0
+     * @var boolean
+     */
+    var $is_search;
+
+    /**
      * Flag to determine if a user is logged in.
      *
      * @access public
@@ -217,6 +226,7 @@ class WP_Redis {
         $this->excluded_categories = $config->exclude_categories;
         $this->domain = $this->get_domain();
         $this->is_user_logged_in = $this->is_user_logged_in();
+        $this->is_search = $this->is_search( $config );
 
         /*
          * The following variables must be populated in this specific order. 
@@ -520,6 +530,19 @@ class WP_Redis {
         return isset( $_GET[$config->delete_page_cache_query_string] );
 
     } // end has_delete_page_cache_query_string
+
+    /**
+     * Determines if requested page is a search page.
+     *
+     * @param   WP_Redis_Config     $config     The configuration file for WP Redis.
+     * @return  boolean     Flag to check if requested page is a search page.
+     */
+
+    private function is_search( $config ) {
+
+        return isset( $_GET[$config->search_query_string] );
+
+    } // end is_search
 
     /**
      * Determines if user is logged in or not based on cookies set by WordPress.

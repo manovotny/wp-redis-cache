@@ -234,6 +234,7 @@ function delete_page_cache() {
  *
  * Criteria:
  *     - User is logged in
+ *     - Search request
  *     - RSS request
  *
  * @return  boolean     If the cache should be bypassed.
@@ -242,7 +243,7 @@ function is_bypass_cache() {
 
     global $wpredis;
 
-    return ( $wpredis->is_user_logged_in || 'feed' === $wpredis->page_type );
+    return ( $wpredis->is_user_logged_in || $wpredis->is_search || 'feed' === $wpredis->page_type );
 
 } // end is_bypass_cache
 

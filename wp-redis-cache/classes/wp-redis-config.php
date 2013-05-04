@@ -58,6 +58,17 @@ class WP_Redis_Config {
     var $redis_port;
 
     /**
+     * The query string parameter used for search.
+     *
+     * This needs to be known because we do not cache search pages.
+     *
+     * @access public
+     * @since 1.0
+     * @var string
+     */
+    var $search_query_string;
+
+    /**
      * The name of the site.
      *
      * This is displayed in cache comments added to the site source.
@@ -113,6 +124,14 @@ class WP_Redis_Config {
 
             // Set a default site name.
             $this->site_name = 'WP Redis';
+
+        } // end if
+
+        // Check for search query string
+        if ( ! isset( $this->search_query_string ) ) {
+
+            // Set a default search query string.
+            $this->search_query_string = 's';
 
         } // end if
 
