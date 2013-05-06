@@ -433,7 +433,7 @@ class WP_Redis {
     private function get_domain() {
 
         // Get host and strip `www` subdomain, but leave all others alone.
-        return str_replace( 'www.', '', $_SERVER['HTTP_HOST'] );
+        return str_replace( 'www.', '', strtolower( $_SERVER['HTTP_HOST'] ) );
 
     } // end get_domain
 
@@ -446,16 +446,16 @@ class WP_Redis {
     private function get_page_path() {
 
         // Get request.
-        $uri = $_SERVER['REQUEST_URI'];
+        $path = strtolower( $_SERVER['REQUEST_URI'] );
 
         // Strip query string.
-        $uri = str_replace( '?' . $_SERVER['QUERY_STRING'], '', $uri );
+        $path = str_replace( '?' . $_SERVER['QUERY_STRING'], '', $path );
 
         // Strip comments identifier.
-        $uri = str_replace( '#comments', '', $uri );
+        $path = str_replace( '#comments', '', $path );
 
         // Return cleansed URI.
-        return $uri;
+        return $path;
 
     } // end get_page_path
 
