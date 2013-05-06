@@ -69,19 +69,19 @@ $start = microtime();
  * It cannot be called from within a function, so we must leave all those calls out here.
  */
 
-if ( is_page_cache_deletable() ) {
-
-    // Let WordPress create the page.
-    require 'wp-blog-header.php';
-
-    delete_page_cache();
-
-} else if ( is_domain_cache_deletable() ) {
+if ( is_domain_cache_deletable() ) {
 
     // Let WordPress create the page.
     require 'wp-blog-header.php';
 
     delete_cache();
+
+} else if ( is_page_cache_deletable() ) {
+
+    // Let WordPress create the page.
+    require 'wp-blog-header.php';
+
+    delete_page_cache();
 
 } else if ( is_bypass_cache() ) {
 
@@ -206,9 +206,20 @@ function delete_cache() {
         // Delete key.
         $wpredis->redis->del( $key );
 
-    }
+    } // end for each
 
-    log_message( 'domain cache deleted' );
+    // Set message.
+    $message = 'domain cache deleted';
+
+    // Check if memory limit was reached
+    if ( $wpredis->is_memory_limit_reached ) {
+
+        // Append memory limit message.
+        $message = 'memory limit reached, ' . $message;
+
+    } // end if
+
+    log_message( $message );
 
 } // end delete_cache
 
@@ -222,8 +233,13 @@ function delete_page_cache() {
     // Delete the page from the cache.
     $wpredis->redis->hdel( $wpredis->get_key(), $wpredis->path );
 
-    // Delete paginated comments.
-    $wpredis->delete_paginated_comments( $this->path_without_comment_pagination );
+    // Check for comment pagination.
+    if ( $wpredis->has_comment_pagination ) {
+
+        // Delete paginated comments.
+        $wpredis->delete_paginated_comments( $wpredis->path_without_comment_pagination );
+
+    } // end if
 
     log_message( 'cache of page deleted' );
 
@@ -251,8 +267,8 @@ function is_bypass_cache() {
  * Checks to see if the domain cache should be deleted.
  *
  * Criteria:
- *     - User is logged in
- *     - Clear domain cache query string is provided
+ *     - Memory limit has been reached
+ *     - User is logged in and clear domain cache query string is provided
  *
  * @return  boolean     If the domain cache can be deleted.
  */
@@ -260,7 +276,7 @@ function is_domain_cache_deletable() {
 
     global $wpredis;
 
-    return ( $wpredis->is_user_logged_in && $wpredis->has_delete_domain_cache_query_string );
+    return ( $wpredis->is_memory_limit_reached || ( $wpredis->is_user_logged_in && $wpredis->has_delete_domain_cache_query_string ) );
 
 } // end is_domain_cache_deletable
 

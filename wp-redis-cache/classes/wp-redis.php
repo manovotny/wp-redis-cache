@@ -128,6 +128,15 @@ class WP_Redis {
     var $has_delete_page_cache_query_string;
 
     /**
+     * Flag to determine if Redis memory limit has been reached.
+     *
+     * @access public
+     * @since 1.0
+     * @var String
+     */
+    var $is_memory_limit_reached;
+
+    /**
      * Flag to determine if requested page is a search page.
      *
      * @access public
@@ -229,6 +238,7 @@ class WP_Redis {
         // Configure Redis.
         $this->site_name = $config->site_name;
         $this->excluded_categories = $config->exclude_categories;
+        $this->is_memory_limit_reached = $this->is_memory_limit_reached( $config );
         $this->domain = $this->get_domain();
         $this->is_user_logged_in = $this->is_user_logged_in();
         $this->is_search = $this->is_search( $config );
@@ -537,10 +547,49 @@ class WP_Redis {
     } // end has_delete_page_cache_query_string
 
     /**
+     * Determines if the Redis memory limit has been reached..
+     *
+     * @param   WP_Redis_Config     $config     The configuration file for WP Redis.
+     * @return  boolean                         Flag to check if memory limit has been reached.
+     */
+
+    private function is_memory_limit_reached( $config ) {
+
+        // Check for memory limit.
+        if ( ! isset( $config->redis_memory_limit ) ) {
+
+            // Not enforcing a memory limit.
+            return false;
+
+        } // end if
+
+        // Get Redis info.
+        $redis_info = $this->redis->info();
+
+        // Get Redis used memory
+        $used_memory_bytes = floatval( $redis_info['Memory']['used_memory'] );
+
+        // Get memory limit bytes.
+        $memory_limit_bytes = $this->size_to_bytes( $config->redis_memory_limit );
+
+        // Check for bytes.
+        if ( empty( $used_memory_bytes ) || empty( $memory_limit_bytes ) ) {
+
+            // Unable to determine.
+            return false;
+
+        } // end if
+
+        // Check if memory limit has been reached.
+        return ( $used_memory_bytes > $memory_limit_bytes );
+
+    } // end is_memory_limit_reached
+
+    /**
      * Determines if requested page is a search page.
      *
      * @param   WP_Redis_Config     $config     The configuration file for WP Redis.
-     * @return  boolean     Flag to check if requested page is a search page.
+     * @return  boolean                         Flag to check if requested page is a search page.
      */
 
     private function is_search( $config ) {
@@ -619,5 +668,49 @@ class WP_Redis {
         } // end if
 
     } // end set_configuration_defaults
+
+    /**
+     * Converts a human readable size (ie. `50MB`) into actual bytes.
+     *
+     * @param   string      $readable_size  Human readable size (ie. `50 MB`).
+     * @return  float|int                   Actual size in bytes.
+     */
+    function size_to_bytes( $readable_size ) {
+
+        // Define expected sizes.
+        $expected_sizes = array( 'B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB' );
+
+        // Get the number portion of the size and initialize the bytes.
+        $bytes = preg_replace( '/[^0-9]*/','', $readable_size );
+
+        // Get the text potion of the size.
+        $size_text = trim( preg_replace( '/\d/', '', $readable_size ) );
+
+        // Calculate multiplier.
+        $multiplier = array_search( $size_text, $expected_sizes );
+
+        // Check if there was an error in calculating the multiplier
+        if ( ! $multiplier ) {
+
+            // Return undefined.
+            return 0;
+
+        } // end if
+
+        // Keep multiplying size based on multiplier.
+        while ( $multiplier != 0 ) {
+
+            // Multiply current size by kilobytes.
+            $bytes = $bytes * 1024;
+
+            // Decrement multiplier.
+            $multiplier--;
+
+        } // end while
+
+        // Return size in bytes.
+        return floatval( $bytes );
+
+    } // end size_to_bytes
 
 } // end class

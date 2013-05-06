@@ -49,6 +49,23 @@ class WP_Redis_Config {
     var $redis_host;
 
     /**
+     * The amount of memory you want to limit Redis to.
+     *
+     * The Redis cache will be cleared if the memory limit is reached.
+     *
+     * Specify values by ending in `MB` or `GB`.
+     *
+     * Example: 200MB
+     *
+     * Do not set a values if you do not want to enforce a memory limit.
+     *
+     * @access public
+     * @since 1.0
+     * @var string
+     */
+    var $redis_memory_limit;
+
+    /**
      * The port number to access Redis.
      *
      * @access public
