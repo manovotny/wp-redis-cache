@@ -67,6 +67,9 @@ class WP_Redis_Cache {
 
         global $wpredis;
 
+        // Disable comment cookies.
+        $this->wp_redis_cache_disable_comment_cookies();
+
         // Only add hooks if Redis is ready to go.
         if ( isset( $wpredis, $wpredis->redis, $wpredis->domain ) ) {
 
@@ -143,6 +146,23 @@ class WP_Redis_Cache {
 
     /* Comments
     ---------------------------------------------------------------- */
+
+    /**
+     * Prevents any future comment cookies from being created and sets
+     * existing comment cookies as expired.
+     */
+    function wp_redis_cache_disable_comment_cookies() {
+
+        // Remove action that sets comment cookies.
+        remove_action( 'set_comment_cookies', 'wp_set_comment_cookies', 10, 2 );
+
+        // Set comment cookies as expired
+        $expired = apply_filters( 'comment_cookie_lifetime', ( time() - 3600 ) );
+        setcookie( 'comment_author_' . COOKIEHASH, '', $expired, COOKIEPATH, COOKIE_DOMAIN );
+        setcookie( 'comment_author_email_' . COOKIEHASH, '', $expired, COOKIEPATH, COOKIE_DOMAIN );
+        setcookie( 'comment_author_url_' . COOKIEHASH, '', $expired, COOKIEPATH, COOKIE_DOMAIN );
+
+    } // end wp_redis_cache_disable_comment_cookies
 
     /**
      * Action triggered when comment is edited.

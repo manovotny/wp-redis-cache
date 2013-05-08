@@ -134,7 +134,7 @@ log_message( 'loaded in: ' . get_execution_time( $start, $end ) );
 function bypass_cache() {
 
     // Log message about using cache.
-    log_message( 'raw page, bypassing cache (logged in or rss)' );
+    log_message( 'raw page, bypassing cache' );
 
 } // end bypass_cache
 
