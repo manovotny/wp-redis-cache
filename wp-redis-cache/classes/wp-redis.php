@@ -511,6 +511,48 @@ class WP_Redis {
     } // end get_page_type
 
     /**
+     * Gets the amount of memory Redis is using, in bytes.
+     *
+     * There are two ways to get the amount of memory Redis is using
+     * and it depending on what version of Redis is being used.
+     *
+     * This function will accommodate for all versions.
+     *
+     * @return  float|int   The amount of memory Redis is using, in bytes.
+     */
+    private function get_used_memory_bytes() {
+
+        // Initialize used memory.
+        $used_memory_bytes = 0;
+
+        // Get Redis info.
+        $redis_info = $this->redis->info();
+
+        // Check for `Memory` key.
+        if ( array_key_exists( 'Memory', $redis_info ) ) {
+
+            // Check for `used_memory` key.
+            if ( array_key_exists( 'used_memory', $redis_info['Memory'] ) ) {
+
+                // Set used memory.
+                $used_memory_bytes = $redis_info['Memory']['used_memory'];
+
+            }
+
+        // Check for `used_memory` key.
+        } else if ( array_key_exists( 'used_memory', $redis_info ) ) {
+
+            // Set used memory.
+            $used_memory_bytes = $redis_info['used_memory'];
+
+        } // end if / else
+
+        // Return used memory.
+        return floatval( $used_memory_bytes );
+
+    } // end get_used_memory_bytes
+
+    /**
      * Checks if the requested page has comment pagination.
      *
      * @return  boolean     If the requested page has comment pagination.
@@ -552,7 +594,6 @@ class WP_Redis {
      * @param   WP_Redis_Config     $config     The configuration file for WP Redis.
      * @return  boolean                         Flag to check if memory limit has been reached.
      */
-
     private function is_memory_limit_reached( $config ) {
 
         // Check for memory limit.
@@ -563,11 +604,8 @@ class WP_Redis {
 
         } // end if
 
-        // Get Redis info.
-        $redis_info = $this->redis->info();
-
         // Get Redis used memory
-        $used_memory_bytes = floatval( $redis_info['Memory']['used_memory'] );
+        $used_memory_bytes = $this->get_used_memory_bytes();
 
         // Get memory limit bytes.
         $memory_limit_bytes = $this->size_to_bytes( $config->redis_memory_limit );
@@ -575,7 +613,7 @@ class WP_Redis {
         // Check for bytes.
         if ( empty( $used_memory_bytes ) || empty( $memory_limit_bytes ) ) {
 
-            // Unable to determine.
+            // Unable to determine if limit was reached.
             return false;
 
         } // end if
@@ -591,7 +629,6 @@ class WP_Redis {
      * @param   WP_Redis_Config     $config     The configuration file for WP Redis.
      * @return  boolean                         Flag to check if requested page is a search page.
      */
-
     private function is_search( $config ) {
 
         return isset( $_GET[$config->search_query_string] );
@@ -603,7 +640,6 @@ class WP_Redis {
      *
      * @return  boolean     Flag to check if user is logged in.
      */
-
     private function is_user_logged_in() {
 
         return ( preg_match( '/wordpress_logged_in/', var_export( $_COOKIE, true ) ) );
@@ -611,12 +647,10 @@ class WP_Redis {
     } // end is_user_logged_in
 
     /**
-     * Determines if user is logged in or not based on cookies set by WordPress.
+     * Sets default Redis properties.
      *
      * @param   WP_Redis_Config     $config     The configuration file for WP Redis.
-     * @return  boolean     Flag to check if user is logged in.
      */
-
     private function set_configuration_defaults( $config ) {
 
         // Check for delete domain query string.
@@ -675,7 +709,7 @@ class WP_Redis {
      * @param   string      $readable_size  Human readable size (ie. `50 MB`).
      * @return  float|int                   Actual size in bytes.
      */
-    function size_to_bytes( $readable_size ) {
+    private function size_to_bytes( $readable_size ) {
 
         // Define expected sizes.
         $expected_sizes = array( 'B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB' );
