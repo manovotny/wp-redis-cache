@@ -411,8 +411,11 @@ class WP_Redis_Cache {
             // Calculate what index page a post is on.
             $page_index = ceil( $position / $posts_per_page );
 
+            // Get index page path.
+            $index_page_path = ( 1 == $page_index ) ? '/' : '/page/' . $page_index . '/';
+
             // Delete the index page from the cache.
-            $wpredis->redis->hdel( $wpredis->get_key( $wpredis::INDEX_KEY ), '/page/' . $page_index . '/' );
+            $wpredis->redis->hdel( $wpredis->get_key( $wpredis::INDEX_KEY ), $index_page_path );
 
         } // end if
 
