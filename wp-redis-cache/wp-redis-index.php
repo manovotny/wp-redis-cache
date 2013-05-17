@@ -120,7 +120,7 @@ create_required_caches();
 $end = microtime();
 
 // Log execution time.
-log_message( 'loaded in: ' . get_execution_time( $start, $end ) );
+log_message( 'executed in: ' . get_execution_time( $start, $end ) . ' seconds' );
 
 /* Helper Functions
 ---------------------------------------------------------------------------------- */
@@ -252,6 +252,7 @@ function delete_page_cache() {
  *     - User is logged in
  *     - Search request
  *     - RSS request
+ *     - Replying to specific comment
  *
  * @return  boolean     If the cache should be bypassed.
  */
@@ -259,7 +260,7 @@ function is_bypass_cache() {
 
     global $wpredis;
 
-    return ( $wpredis->is_user_logged_in || $wpredis->is_search || 'feed' === $wpredis->page_type );
+    return ( $wpredis->is_user_logged_in || $wpredis->is_search || 'feed' === $wpredis->page_type || $wpredis->is_comment_reply );
 
 } // end is_bypass_cache
 
@@ -334,7 +335,8 @@ function use_page_cache() {
 ---------------------------------------------- */
 
 /**
- * Calculate the amount of time it took to load the page.
+ * Calculate the amount of time it took to execute the construction of the
+ * page.
  *
  * @param   float   $start  When the page began to load.
  * @param   float   $end    When the page stopped loading.

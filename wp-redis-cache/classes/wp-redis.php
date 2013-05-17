@@ -128,6 +128,15 @@ class WP_Redis {
     var $has_delete_page_cache_query_string;
 
     /**
+     * Flag to determine if a specific comment is being replied to.
+     *
+     * @access public
+     * @since 1.0
+     * @var boolean
+     */
+    var $is_comment_reply;
+
+    /**
      * Flag to determine if Redis memory limit has been reached.
      *
      * @access public
@@ -241,6 +250,7 @@ class WP_Redis {
         $this->is_memory_limit_reached = $this->is_memory_limit_reached( $config );
         $this->domain = $this->get_domain();
         $this->is_user_logged_in = $this->is_user_logged_in();
+        $this->is_comment_reply = $this->is_comment_reply();
         $this->is_search = $this->is_search( $config );
 
         /*
@@ -587,6 +597,17 @@ class WP_Redis {
         return isset( $_GET[$config->delete_page_cache_query_string] );
 
     } // end has_delete_page_cache_query_string
+
+    /**
+     * Checks to see if a specific comment is being replied to.
+     *
+     * @return boolean  If a specific comment is being replied to.
+     */
+    private function is_comment_reply() {
+
+        return isset( $_GET['replytocom'] );
+
+    } // end is_comment_reply
 
     /**
      * Determines if the Redis memory limit has been reached..
