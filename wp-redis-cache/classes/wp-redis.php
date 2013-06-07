@@ -232,6 +232,10 @@ class WP_Redis {
         // Set configuration defaults.
         $this->set_configuration_defaults( $config );
 
+        // Set minimal Redis configuration.
+        $this->site_name = $config->site_name;
+        $this->excluded_categories = $config->exclude_categories;
+
         // Include Predis.
         include_once realpath( __DIR__ . '/../predis/lib/Predis/Autoloader.php' );
         Predis\Autoloader::register();
@@ -244,25 +248,28 @@ class WP_Redis {
             )
         );
 
-        // Configure Redis.
-        $this->site_name = $config->site_name;
-        $this->excluded_categories = $config->exclude_categories;
-        $this->is_memory_limit_reached = $this->is_memory_limit_reached( $config );
-        $this->domain = $this->get_domain();
-        $this->is_user_logged_in = $this->is_user_logged_in();
-        $this->is_comment_reply = $this->is_comment_reply();
-        $this->is_search = $this->is_search( $config );
+        // Check that the connection to Redis was established.
+        if ( $this->redis->isConnected() ) {
 
-        /*
-         * The following variables must be populated in this specific order. 
-         * Do not rearrange them!
-         */
-        $this->has_delete_domain_cache_query_string = $this->has_delete_domain_cache_query_string( $config );
-        $this->has_delete_page_cache_query_string = $this->has_delete_page_cache_query_string( $config );
-        $this->path = $this->get_page_path();
-        $this->has_comment_pagination = $this->has_comment_pagination();
-        $this->path_without_comment_pagination = $this->get_page_path_without_comment_pagination();
-        $this->page_type = $this->get_page_type();
+            // Set advanced Redis configuration.
+            $this->is_memory_limit_reached = $this->is_memory_limit_reached( $config );
+            $this->domain = $this->get_domain();
+            $this->is_user_logged_in = $this->is_user_logged_in();
+            $this->is_comment_reply = $this->is_comment_reply();
+            $this->is_search = $this->is_search( $config );
+
+            /*
+             * The following variables must be populated in this specific order.
+             * Do not rearrange them!
+             */
+            $this->has_delete_domain_cache_query_string = $this->has_delete_domain_cache_query_string( $config );
+            $this->has_delete_page_cache_query_string = $this->has_delete_page_cache_query_string( $config );
+            $this->path = $this->get_page_path();
+            $this->has_comment_pagination = $this->has_comment_pagination();
+            $this->path_without_comment_pagination = $this->get_page_path_without_comment_pagination();
+            $this->page_type = $this->get_page_type();
+
+        } // end if
 
     } // end constructor
 

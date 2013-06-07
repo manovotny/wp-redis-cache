@@ -36,13 +36,16 @@ include_once 'wp-redis-setup.php';
 
 global $wpredis;
 
-// Check if Redis is ready for use.
-if ( ! isset( $wpredis, $wpredis->redis ) ) {
+// Check if the connection to Redis failed.
+if ( ! isset( $wpredis, $wpredis->redis ) || ! $wpredis->redis->isConnected() ) {
 
     // Let WordPress create the page.
     require 'wp-blog-header.php';
 
-    // Redis was not setup correctly.
+    // Log message.
+    log_message( 'cannot connect to Redis' );
+
+    // Cannot connect to Redis.
     exit();
 
 } // end if
