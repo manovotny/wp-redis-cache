@@ -70,8 +70,8 @@ class WP_Redis_Cache {
         // Disable comment cookies.
         $this->wp_redis_cache_disable_comment_cookies();
 
-        // Only add hooks if Redis is ready to go.
-        if ( isset( $wpredis, $wpredis->redis, $wpredis->domain ) ) {
+        // Check for a connection to Redis.
+        if ( isset( $wpredis ) && $wpredis->is_connected() ) {
 
             // Register post actions.
             add_action( 'transition_post_status', array( $this, 'wp_redis_cache_transition_post_status' ), 10, 3 );

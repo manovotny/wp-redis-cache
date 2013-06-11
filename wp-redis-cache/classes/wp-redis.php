@@ -236,20 +236,11 @@ class WP_Redis {
         $this->site_name = $config->site_name;
         $this->excluded_categories = $config->exclude_categories;
 
-        // Include Predis.
-        include_once realpath( __DIR__ . '/../predis/lib/Predis/Autoloader.php' );
-        Predis\Autoloader::register();
-
-        // Setup Redis client.
-        $this->redis = new Predis\Client(
-            array(
-                'host' => $config->redis_host,
-                'port' => $config->redis_port
-            )
-        );
+        // Establish a connection to Redis.
+        $this->connect_to_redis( $config );
 
         // Check that the connection to Redis was established.
-        if ( $this->redis->isConnected() ) {
+        if ( $this->is_connected() ) {
 
             // Set advanced Redis configuration.
             $this->is_memory_limit_reached = $this->is_memory_limit_reached( $config );
@@ -366,6 +357,18 @@ class WP_Redis {
     } // end delete_paginated_comments
 
     /**
+     * Determines if a connection to Redis could be established.
+     *
+     * @return  boolean     If a connection to Redis could be established.
+     */
+    function is_connected() {
+
+        // Check if a connection to Redis could be established.
+        return ( isset( $this->redis ) && $this->redis->isConnected() );
+
+    } // end is_connected
+
+    /**
      * Runs position query and adds post positions to the cache.
      */
     function run_post_position_query() {
@@ -441,6 +444,51 @@ class WP_Redis {
         return false;
 
     } // end array_in_array
+
+    /**
+     * Establishes the connection to Redis.
+     *
+     * @param   WP_Redis_Config     $config     The configuration file for WP Redis.
+     */
+    private function connect_to_redis( $config ) {
+
+        // Include Predis.
+        include_once realpath( __DIR__ . '/../predis/lib/Predis/Autoloader.php' );
+        Predis\Autoloader::register();
+
+        // Setup Redis client.
+        $this->redis = new Predis\Client(
+            array(
+                'host' => $config->redis_host,
+                'port' => $config->redis_port
+            )
+        );
+
+        /*
+         * We need to try and establish a connection to Redis in order to use the
+         * Predis\Client::isConnected() method.
+         *
+         * It has to be surrounded with a try / catch because even the attempt to
+         * connect to Redis, if configured improperly, will cause the page to return
+         * a 500 Internal Server Error.
+         */
+
+        // Try to connect to Redis.
+        try {
+
+            // Connect to Redis.
+            $this->redis->connect();
+
+        } catch ( Predis\Connection\ConnectionException $exception ) {
+
+            /*
+             * Unable to establish a connection to Redis. The Predis\Client::isConnected()
+             * method should now be updated and accurate.
+             */
+
+        } // end try / catch
+
+    } // end connect_to_redis
 
     /**
      * Gets the domain of the page being loaded.
