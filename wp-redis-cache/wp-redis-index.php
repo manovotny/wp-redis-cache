@@ -37,7 +37,7 @@ include_once 'wp-redis-setup.php';
 global $wpredis;
 
 // Check if the connection to Redis failed.
-if ( ! isset( $wpredis ) || ! $wpredis->is_connected() ) {
+if ( ! isset( $wpredis ) || ! $wpredis->is_connected ) {
 
     // Let WordPress create the page.
     require 'wp-blog-header.php';

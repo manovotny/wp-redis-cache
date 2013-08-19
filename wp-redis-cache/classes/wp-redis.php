@@ -20,7 +20,7 @@ class WP_Redis {
      *
      * This get gets paired with the `domain` to create a Redis key.
      *
-     * @access public
+     * @access const
      * @since 1.0
      * @var string
      */
@@ -31,7 +31,7 @@ class WP_Redis {
      *
      * This get gets paired with the `domain` to create a Redis key.
      *
-     * @access public
+     * @access const
      * @since 1.0
      * @var string
      */
@@ -42,7 +42,7 @@ class WP_Redis {
      *
      * This get gets paired with the `domain` to create a Redis key.
      *
-     * @access public
+     * @access const
      * @since 1.0
      * @var string
      */
@@ -51,7 +51,7 @@ class WP_Redis {
     /**
      * Select query to determine chronological post position.
      *
-     * @access public
+     * @access const
      * @since 1.0
      * @var string
      */
@@ -73,7 +73,7 @@ class WP_Redis {
      *
      * This get gets paired with the `domain` to create a Redis key.
      *
-     * @access public
+     * @access const
      * @since 1.0
      * @var string
      */
@@ -135,6 +135,15 @@ class WP_Redis {
      * @var boolean
      */
     var $is_comment_reply;
+
+    /**
+     * Flag to determine if a connection to Redis could be established.
+     *
+     * @access public
+     * @since 1.0
+     * @var boolean
+     */
+    var $is_connected;
 
     /**
      * Flag to determine if Redis memory limit has been reached.
@@ -240,7 +249,7 @@ class WP_Redis {
         $this->connect_to_redis( $config );
 
         // Check that the connection to Redis was established.
-        if ( $this->is_connected() ) {
+        if ( $this->is_connected ) {
 
             // Set advanced Redis configuration.
             $this->is_memory_limit_reached = $this->is_memory_limit_reached( $config );
@@ -357,18 +366,6 @@ class WP_Redis {
     } // end delete_paginated_comments
 
     /**
-     * Determines if a connection to Redis could be established.
-     *
-     * @return  boolean     If a connection to Redis could be established.
-     */
-    function is_connected() {
-
-        // Check if a connection to Redis could be established.
-        return ( isset( $this->redis ) && $this->redis->isConnected() );
-
-    } // end is_connected
-
-    /**
      * Runs position query and adds post positions to the cache.
      */
     function run_post_position_query() {
@@ -391,7 +388,7 @@ class WP_Redis {
             $post_categories = wp_get_post_categories( $post->id );
 
             // Check if post category is being excluded on the index page.
-            if ( ! $this->array_in_array( $this->excluded_categories, $post_categories ) ) {
+            if ( ! empty( $this->excluded_categories ) && ! empty( $post_categories ) && ! $this->array_in_array( $this->excluded_categories, $post_categories ) ) {
 
                 // Increment post position.
                 $post_position++;
@@ -488,6 +485,9 @@ class WP_Redis {
 
         } // end try / catch
 
+        // Update connection status.
+        $this->is_connected = ( isset( $this->redis ) && $this->redis->isConnected() );
+
     } // end connect_to_redis
 
     /**
@@ -514,7 +514,7 @@ class WP_Redis {
         $path = strtolower( $_SERVER['REQUEST_URI'] );
 
         // Strip query string.
-        $path = str_replace( '?' . $_SERVER['QUERY_STRING'], '', $path );
+        $path = str_replace( strtolower( '?' . $_SERVER['QUERY_STRING'] ), '', $path );
 
         // Strip comments identifier.
         $path = str_replace( '#comments', '', $path );
@@ -742,22 +742,6 @@ class WP_Redis {
 
             // Set a default delete page query string.
             $config->delete_page_cache_query_string = 'delete-page-cache';
-
-        } // end if
-
-        // Check for Redis host.
-        if ( ! isset( $config->redis_host ) ) {
-
-            // Set a default Redis host.
-            $config->redis_host = $_SERVER['CACHE2_HOST'];
-
-        } // end if
-
-        // Check for Redis port.
-        if ( ! isset( $config->redis_port ) ) {
-
-            // Set a default Redis port.
-            $config->redis_port = $_SERVER['CACHE2_PORT'];
 
         } // end if
 
